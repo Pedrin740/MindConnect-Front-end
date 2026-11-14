@@ -8,6 +8,7 @@ const navigation = [
   { name: "Conteúdos", path: "/conteudos" },
   { name: "Diário", path: "/diario" },
   { name: "Sobre", path: "/sobre" },
+  { name: "Integrantes", path: "/integrantes" },
 ];
 
 function Navbar() {
