@@ -1,3 +1,4 @@
+
 const integrantes = [
   {
     nome: "Pedro Felipe de Castro Rosa",
@@ -60,31 +61,39 @@ export function Integrantes() {
           </p>
         </section>
 
-        <section className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {integrantes.map((integrante) => (
+        <section className="grid grid-cols-1 items-stretch gap-6 sm:grid-cols-2 lg:grid-cols-6">
+          {integrantes.map((integrante, index) => (
             <article
               key={integrante.rm}
-              className="rounded-2xl border border-gray-100 bg-white p-7 text-center shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+              className={`flex h-full flex-col rounded-2xl border border-gray-100 bg-white p-7 text-center shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-lg sm:col-span-1 lg:col-span-2 ${
+                index === 3
+                  ? "lg:col-start-2"
+                  : index === 4
+                    ? "lg:col-start-4"
+                    : ""
+              }`}
             >
               <img
                 src={integrante.imagem}
                 alt={`Foto de ${integrante.nome}`}
-                className="mx-auto h-32 w-32 rounded-full border-4 border-purple-100 object-cover"
+                className="mx-auto h-32 w-32 shrink-0 rounded-full border-4 border-purple-100 object-cover"
               />
 
-              <h2 className="mt-5 text-lg font-bold text-gray-900">
+              <h2 className="mt-5 flex min-h-14 items-center justify-center text-lg font-bold text-gray-900">
                 {integrante.nome}
               </h2>
 
-              <p className="mt-3 text-sm text-gray-500">
-                RM: {integrante.rm}
-              </p>
+              <div className="mt-3">
+                <p className="text-sm text-gray-500">
+                  RM: {integrante.rm}
+                </p>
 
-              <p className="text-sm text-gray-500">
-                Turma: 1TDSPK
-              </p>
+                <p className="text-sm text-gray-500">
+                  Turma: 1TDSPK
+                </p>
+              </div>
 
-              <div className="mt-6 grid grid-cols-2 gap-3">
+              <div className="mt-auto grid grid-cols-2 gap-3 pt-6">
                 <a
                   href={integrante.github}
                   target="_blank"
