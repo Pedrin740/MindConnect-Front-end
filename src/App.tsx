@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
+import MainLayout from "./components/MainLayout";
+
 import Home from "./pages/Home";
 import Integrantes from "./pages/Integrantes";
 import Sobre from "./pages/Sobre";
@@ -13,17 +15,17 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Páginas institucionais */}
-        <Route path="/" element={<Home />} />
-        <Route path="/integrantes" element={<Integrantes />} />
-        <Route path="/sobre" element={<Sobre />} />
-        <Route path="/faq" element={<FAQ />} />
-        <Route path="/contato" element={<Contato />} />
+        <Route element={<MainLayout />}>
+          <Route path="/" element={<Home />} />
+          <Route path="/integrantes" element={<Integrantes />} />
+          <Route path="/sobre" element={<Sobre />} />
+          <Route path="/faq" element={<FAQ />} />
+          <Route path="/contato" element={<Contato />} />
 
-        {/* Funcionalidades do Mind Connect */}
-        <Route path="/servicos" element={<Servicos />} />
-        <Route path="/conteudos" element={<Conteudos />} />
-        <Route path="/diario" element={<Diario />} />
+          <Route path="/servicos" element={<Servicos />} />
+          <Route path="/conteudos" element={<Conteudos />} />
+          <Route path="/diario" element={<Diario />} />
+        </Route>
       </Routes>
     </BrowserRouter>
   );
