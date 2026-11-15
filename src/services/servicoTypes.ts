@@ -1,4 +1,3 @@
-
 export interface ServicoAcolhimento {
   idServico: number;
   idCategoriaServico: number;
@@ -13,6 +12,8 @@ export interface ServicoAcolhimento {
   descricaoServicos: string;
   fonteInformacao: string;
   dataVerificacao: string;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export interface CategoriaServico {
