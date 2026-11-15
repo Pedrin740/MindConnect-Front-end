@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { BookOpen, CalendarDays, ExternalLink, FileText, Heart, LoaderCircle, AlertCircle, RefreshCw, } from "lucide-react";
-import { buscarConteudos } from "../services/conteudoService";
-import type { Conteudo } from "../services/conteudoTypes";
+import type { FormEvent } from "react";
+import { BookOpen, CalendarDays, ExternalLink, FileText, Heart, LoaderCircle, AlertCircle, RefreshCw, Search, Filter } from "lucide-react";
+import { buscarConteudos, buscarCategoriasConteudo } from "../services/conteudoService";
+import type { Conteudo, CategoriaConteudo } from "../services/conteudoTypes";
 
 function formatarData(data: string | null): string {
   if (!data) return "Data não informada";
@@ -26,10 +27,70 @@ function validarUrlMaterial(material: string): boolean {
 
 function Conteudos() {
   const [conteudos, setConteudos] = useState<Conteudo[]>([]);
+  const [categorias, setCategorias] = useState<CategoriaConteudo[]>([]);
+
+  const [busca, setBusca] = useState("");
+  const [categoriaSelecionada, setCategoriaSelecionada] = useState("");
+
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
 
-  async function carregarConteudos() {
+  async function carregarDadosIniciais() {
+    try {
+      setCarregando(true);
+      setErro("");
+
+      const [listaConteudos, listaCategorias] = await Promise.all([
+        buscarConteudos({ status: "ATIVO" }),
+        buscarCategoriasConteudo(),
+      ]);
+
+      setConteudos(listaConteudos);
+      setCategorias(listaCategorias);
+    } catch (error) {
+      setErro(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível carregar os conteúdos."
+      );
+    } finally {
+      setCarregando(false);
+    }
+  }
+
+  useEffect(() => {
+    carregarDadosIniciais();
+  }, []);
+
+  async function handleSearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    try {
+      setCarregando(true);
+      setErro("");
+
+      const resultados = await buscarConteudos({
+        busca: busca.trim() || undefined,
+        categoria: categoriaSelecionada || undefined,
+        status: "ATIVO",
+      });
+
+      setConteudos(resultados);
+    } catch (error) {
+      setErro(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível realizar a pesquisa."
+      );
+    } finally {
+      setCarregando(false);
+    }
+  }
+
+  async function limparFiltros() {
+    setBusca("");
+    setCategoriaSelecionada("");
+
     try {
       setCarregando(true);
       setErro("");
@@ -49,10 +110,6 @@ function Conteudos() {
       setCarregando(false);
     }
   }
-
-  useEffect(() => {
-    carregarConteudos();
-  }, []);
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -77,7 +134,109 @@ function Conteudos() {
 
       {/* Conteúdo principal */}
       <section className="mx-auto max-w-7xl px-6 py-12 lg:px-8">
-        <div className="mb-8">
+        {/* Pesquisa e filtros */}
+        <form
+          onSubmit={handleSearch}
+          className="relative -mt-20 mb-12 rounded-2xl border border-slate-100 bg-white p-5 shadow-xl shadow-slate-200/60 sm:p-7"
+        >
+          <div className="mb-5">
+            <h2 className="text-xl font-bold text-slate-900">
+              Encontre um conteúdo
+            </h2>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Pesquise pelo título, assunto ou selecione uma categoria.
+            </p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-[1fr_1fr_auto]">
+            {/* Busca */}
+            <div>
+              <label
+                htmlFor="busca-conteudo"
+                className="mb-2 block text-sm font-semibold text-slate-700"
+              >
+                Pesquisar conteúdo
+              </label>
+
+              <div className="flex h-12 items-center gap-3 rounded-xl border border-slate-200 px-4 transition-colors focus-within:border-violet-500 focus-within:ring-2 focus-within:ring-violet-100">
+                <Search size={19} className="shrink-0 text-violet-500" />
+
+                <input
+                  id="busca-conteudo"
+                  type="search"
+                  value={busca}
+                  onChange={(event) => setBusca(event.target.value)}
+                  placeholder="Digite o título ou assunto..."
+                  className="w-full bg-transparent text-sm text-slate-800 outline-none placeholder:text-slate-400"
+                />
+              </div>
+            </div>
+
+            {/* Categoria */}
+            <div>
+              <label
+                htmlFor="categoria-conteudo"
+                className="mb-2 block text-sm font-semibold text-slate-700"
+              >
+                Categoria
+              </label>
+
+              <div className="relative">
+                <Filter
+                  size={17}
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-violet-500"
+                />
+
+                <select
+                  id="categoria-conteudo"
+                  value={categoriaSelecionada}
+                  onChange={(event) =>
+                    setCategoriaSelecionada(event.target.value)
+                  }
+                  className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-3 text-sm text-slate-700 outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+                >
+                  <option value="">Todas as categorias</option>
+
+                  {categorias.map((categoria) => (
+                    <option
+                      key={categoria.idCategoriaConteudo}
+                      value={String(categoria.idCategoriaConteudo)}
+                    >
+                      {categoria.nome}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Pesquisar */}
+            <div className="flex items-end">
+              <button
+                type="submit"
+                disabled={carregando}
+                className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-violet-700 px-6 font-semibold text-white transition-colors hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Search size={18} />
+                Pesquisar
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-4 flex justify-end">
+            <button
+              type="button"
+              onClick={limparFiltros}
+              disabled={carregando}
+              className="text-sm font-medium text-violet-700 transition-colors hover:text-violet-900 disabled:opacity-50"
+            >
+              Limpar filtros
+            </button>
+          </div>
+        </form>
+
+        {/* Resultados */}
+        <div className="mb-6">
           <h2 className="text-2xl font-bold text-slate-900">
             Materiais disponíveis
           </h2>
@@ -121,7 +280,7 @@ function Conteudos() {
 
             <button
               type="button"
-              onClick={carregarConteudos}
+              onClick={carregarDadosIniciais}
               className="mt-6 inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-red-700"
             >
               <RefreshCw size={17} />
@@ -204,23 +363,25 @@ function Conteudos() {
                 </div>
 
                 {/* Material */}
-                {conteudo.material && validarUrlMaterial(conteudo.material) && (
-                  <a
-                    href={conteudo.material}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-violet-700 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-violet-800"
-                  >
-                    Acessar material
-                    <ExternalLink size={16} />
-                  </a>
-                )}
+                {conteudo.material &&
+                  validarUrlMaterial(conteudo.material) && (
+                    <a
+                      href={conteudo.material}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-violet-700 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-violet-800"
+                    >
+                      Acessar material
+                      <ExternalLink size={16} />
+                    </a>
+                  )}
 
-                {conteudo.material && !validarUrlMaterial(conteudo.material) && (
-                  <div className="mt-6 rounded-xl bg-violet-50 px-4 py-3 text-sm leading-6 text-violet-800">
-                    {conteudo.material}
-                  </div>
-                )}
+                {conteudo.material &&
+                  !validarUrlMaterial(conteudo.material) && (
+                    <div className="mt-6 rounded-xl bg-violet-50 px-4 py-3 text-sm leading-6 text-violet-800">
+                      {conteudo.material}
+                    </div>
+                  )}
               </article>
             ))}
           </div>
@@ -234,12 +395,12 @@ function Conteudos() {
             </div>
 
             <h3 className="mt-5 text-xl font-bold text-slate-900">
-              Nenhum conteúdo disponível
+              Nenhum conteúdo encontrado
             </h3>
 
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
-              Ainda não existem conteúdos ativos cadastrados.
-              Volte em outro momento para conferir as novidades.
+              Não encontramos conteúdos com os critérios informados.
+              Tente modificar sua pesquisa ou selecionar outra categoria.
             </p>
           </div>
         )}
