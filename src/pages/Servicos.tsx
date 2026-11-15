@@ -4,39 +4,6 @@ import { useSearchParams } from "react-router-dom";
 import { Search, MapPin, Phone, Clock, HeartHandshake, LoaderCircle, AlertCircle } from "lucide-react";
 import { buscarServicos, buscarCategoriasServico, buscarMunicipios } from "../services/servicosService";
 import type { ServicoAcolhimento, CategoriaServico } from "../services/servicoTypes";
-import MapaServicos from "../components/MapaServicos";
-
-function formatarTelefone(telefone: string): string {
-  const numeros = telefone.replace(/\D/g, "");
-
-  if (!numeros) {
-    return telefone.trim();
-  }
-
-  const numeroLocal =
-    numeros.startsWith("55") &&
-    (numeros.length === 12 || numeros.length === 13)
-      ? numeros.slice(2)
-      : numeros;
-
-  if (numeroLocal.length === 10) {
-    return `(${numeroLocal.slice(0, 2)}) ${numeroLocal.slice(2, 6)}-${numeroLocal.slice(6)}`;
-  }
-
-  if (numeroLocal.length === 11) {
-    return `(${numeroLocal.slice(0, 2)}) ${numeroLocal.slice(2, 7)}-${numeroLocal.slice(7)}`;
-  }
-
-  if (numeroLocal.length === 8) {
-    return `${numeroLocal.slice(0, 4)}-${numeroLocal.slice(4)}`;
-  }
-
-  if (numeroLocal.length === 9) {
-    return `${numeroLocal.slice(0, 5)}-${numeroLocal.slice(5)}`;
-  }
-
-  return telefone.trim();
-}
 
 function Servicos() {
   const [searchParams] = useSearchParams();
@@ -44,6 +11,7 @@ function Servicos() {
   const [servicos, setServicos] = useState<ServicoAcolhimento[]>([]);
   const [categorias, setCategorias] = useState<CategoriaServico[]>([]);
   const [municipios, setMunicipios] = useState<string[]>([]);
+  const [regioes, setRegioes] = useState<string[]>([]);
 
   const [busca, setBusca] = useState(
     searchParams.get("busca") || ""
@@ -51,6 +19,10 @@ function Servicos() {
 
   const [municipio, setMunicipio] = useState(
     searchParams.get("municipio") || ""
+  );
+
+  const [regiao, setRegiao] = useState(
+    searchParams.get("regiao") || ""
   );
 
   const [categoria, setCategoria] = useState(
@@ -70,20 +42,31 @@ function Servicos() {
           listaServicos,
           listaCategorias,
           listaMunicipios,
+          todosServicos,
         ] = await Promise.all([
           buscarServicos(
             searchParams.get("busca") || undefined,
             searchParams.get("municipio") || undefined,
-            undefined,
+            searchParams.get("regiao") || undefined,
             searchParams.get("categoria") || undefined
           ),
           buscarCategoriasServico(),
           buscarMunicipios(),
+          buscarServicos(),
         ]);
+
+        const regioesDisponiveis = Array.from(
+          new Set(
+            todosServicos
+              .map((servico) => servico.regiao?.trim())
+              .filter((item): item is string => Boolean(item))
+          )
+        ).sort((a, b) => a.localeCompare(b, "pt-BR"));
 
         setServicos(listaServicos);
         setCategorias(listaCategorias);
         setMunicipios(listaMunicipios);
+        setRegioes(regioesDisponiveis);
       } catch (error) {
         setErro(
           error instanceof Error
@@ -108,7 +91,7 @@ function Servicos() {
       const resultados = await buscarServicos(
         busca.trim() || undefined,
         municipio || undefined,
-        undefined,
+        regiao || undefined,
         categoria || undefined
       );
 
@@ -127,6 +110,7 @@ function Servicos() {
   function limparFiltros() {
     setBusca("");
     setMunicipio("");
+    setRegiao("");
     setCategoria("");
 
     async function carregarTodos() {
@@ -193,7 +177,7 @@ function Servicos() {
             </p>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
 
             {/* Nome */}
             <div>
@@ -236,6 +220,31 @@ function Servicos() {
                 <option value="">Todos os municípios</option>
 
                 {municipios.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Região */}
+            <div>
+              <label
+                htmlFor="regiao-servico"
+                className="mb-2 block text-sm font-semibold text-slate-700"
+              >
+                Região
+              </label>
+
+              <select
+                id="regiao-servico"
+                value={regiao}
+                onChange={(event) => setRegiao(event.target.value)}
+                className="h-12 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+              >
+                <option value="">Todas as regiões</option>
+
+                {regioes.map((item) => (
                   <option key={item} value={item}>
                     {item}
                   </option>
@@ -352,11 +361,6 @@ function Servicos() {
           </div>
         )}
 
-        {/* Mapa de serviços */}
-        {!carregando && !erro && servicos.length > 0 && (
-          <MapaServicos servicos={servicos} />
-        )}
-
         {/* Lista de serviços */}
         {!carregando && !erro && servicos.length > 0 && (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -410,7 +414,7 @@ function Servicos() {
                         className="shrink-0 text-violet-600"
                       />
 
-                      <span>{formatarTelefone(servico.telefone)}</span>
+                      <span>{servico.telefone}</span>
                     </div>
                   )}
 
