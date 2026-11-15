@@ -8,6 +8,7 @@ import Sobre from "./pages/Sobre";
 import FAQ from "./pages/FAQ";
 import Contato from "./pages/Contato";
 import Servicos from "./pages/Servicos";
+import ServicoDetalhe from "./pages/ServicoDetalhe";
 import Conteudos from "./pages/Conteudos";
 import Diario from "./pages/Diario";
 
@@ -23,6 +24,8 @@ function App() {
           <Route path="/contato" element={<Contato />} />
 
           <Route path="/servicos" element={<Servicos />} />
+          <Route path="/servicos/:id" element={<ServicoDetalhe />} />
+
           <Route path="/conteudos" element={<Conteudos />} />
           <Route path="/diario" element={<Diario />} />
         </Route>

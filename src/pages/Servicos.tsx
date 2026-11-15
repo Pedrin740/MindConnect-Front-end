@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Search, MapPin, Phone, Clock, HeartHandshake, LoaderCircle, AlertCircle } from "lucide-react";
 import { buscarServicos, buscarCategoriasServico, buscarMunicipios } from "../services/servicosService";
 import type { ServicoAcolhimento, CategoriaServico } from "../services/servicoTypes";
@@ -437,6 +437,14 @@ function Servicos() {
                     </div>
                   )}
                 </div>
+
+                {/* Acesso à página de detalhes */}
+                <Link
+                  to={`/servicos/${servico.idServico}`}
+                  className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-violet-700 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-violet-800"
+                >
+                  Ver detalhes do serviço
+                </Link>
               </article>
             ))}
           </div>
