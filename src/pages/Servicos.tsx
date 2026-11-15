@@ -5,6 +5,45 @@ import { Search, MapPin, Phone, Clock, HeartHandshake, LoaderCircle, AlertCircle
 import { buscarServicos, buscarCategoriasServico, buscarMunicipios } from "../services/servicosService";
 import type { ServicoAcolhimento, CategoriaServico } from "../services/servicoTypes";
 
+// Formata os telefones para o padrão brasileiro.
+function formatarTelefone(telefone: string): string {
+  const numeros = telefone.replace(/\D/g, "");
+
+  if (!numeros) {
+    return telefone.trim();
+  }
+
+  // Remove o código do Brasil (55), quando presente.
+  const numeroLocal =
+    numeros.startsWith("55") &&
+    (numeros.length === 12 || numeros.length === 13)
+      ? numeros.slice(2)
+      : numeros;
+
+  // Telefone fixo com DDD: (11) 3544-1800
+  if (numeroLocal.length === 10) {
+    return `(${numeroLocal.slice(0, 2)}) ${numeroLocal.slice(2, 6)}-${numeroLocal.slice(6)}`;
+  }
+
+  // Telefone celular com DDD: (11) 98765-4321
+  if (numeroLocal.length === 11) {
+    return `(${numeroLocal.slice(0, 2)}) ${numeroLocal.slice(2, 7)}-${numeroLocal.slice(7)}`;
+  }
+
+  // Telefone fixo sem DDD: 3544-1800
+  if (numeroLocal.length === 8) {
+    return `${numeroLocal.slice(0, 4)}-${numeroLocal.slice(4)}`;
+  }
+
+  // Telefone celular sem DDD: 98765-4321
+  if (numeroLocal.length === 9) {
+    return `${numeroLocal.slice(0, 5)}-${numeroLocal.slice(5)}`;
+  }
+
+  // Preserva números fora dos formatos reconhecidos.
+  return telefone.trim();
+}
+
 function Servicos() {
   const [searchParams] = useSearchParams();
 
@@ -372,7 +411,7 @@ function Servicos() {
                         className="shrink-0 text-violet-600"
                       />
 
-                      <span>{servico.telefone}</span>
+                      <span>{formatarTelefone(servico.telefone)}</span>
                     </div>
                   )}
 
