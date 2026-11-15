@@ -1,8 +1,9 @@
 import { api } from "./api";
-import type { ServicoAcolhimento, CategoriaServico } from "./servicoTypes";
+import type { ServicoAcolhimento,  CategoriaServico } from "./servicoTypes";
 
 export function buscarServicos(
   nome?: string,
+  municipio?: string,
   regiao?: string,
   categoria?: string
 ): Promise<ServicoAcolhimento[]> {
@@ -10,6 +11,10 @@ export function buscarServicos(
 
   if (nome) {
     params.append("nome", nome);
+  }
+
+  if (municipio) {
+    params.append("municipio", municipio);
   }
 
   if (regiao) {
@@ -35,4 +40,8 @@ export function buscarServicoPorId(
 
 export function buscarCategoriasServico(): Promise<CategoriaServico[]> {
   return api<CategoriaServico[]>("/api/categorias-servico");
+}
+
+export function buscarMunicipios(): Promise<string[]> {
+  return api<string[]>("/api/servicos/municipios");
 }

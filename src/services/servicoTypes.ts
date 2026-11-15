@@ -1,3 +1,4 @@
+
 export interface ServicoAcolhimento {
   idServico: number;
   idCategoriaServico: number;
@@ -5,6 +6,7 @@ export interface ServicoAcolhimento {
   nome: string;
   endereco: string;
   bairro: string;
+  municipio: string;
   regiao: string;
   telefone: string;
   horarioFuncionamento: string;
