@@ -1,13 +1,21 @@
-import { useEffect, useMemo } from "react";
+
+import { useEffect, useMemo, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
-import { MapPin } from "lucide-react";
+import { MapPin, LoaderCircle } from "lucide-react";
 import type { LatLngBoundsExpression } from "leaflet";
 import type { ServicoAcolhimento } from "../services/servicoTypes";
+import { geocodificarEndereco } from "../services/geocodificacaoService";
 import "leaflet/dist/leaflet.css";
 
 interface MapaServicosProps {
   servicos: ServicoAcolhimento[];
+}
+
+interface ServicoComCoordenadas {
+  servico: ServicoAcolhimento;
+  latitude: number;
+  longitude: number;
 }
 
 function formatarTelefone(telefone: string): string {
@@ -38,6 +46,37 @@ function formatarTelefone(telefone: string): string {
   }
 
   return telefone.trim();
+}
+
+function possuiCoordenadasValidas(servico: ServicoAcolhimento): boolean {
+  const latitude = Number(servico.latitude);
+  const longitude = Number(servico.longitude);
+
+  return (
+    servico.latitude !== null &&
+    servico.latitude !== undefined &&
+    servico.longitude !== null &&
+    servico.longitude !== undefined &&
+    Number.isFinite(latitude) &&
+    Number.isFinite(longitude) &&
+    latitude >= -90 &&
+    latitude <= 90 &&
+    longitude >= -180 &&
+    longitude <= 180 &&
+    (latitude !== 0 || longitude !== 0)
+  );
+}
+
+function montarEndereco(servico: ServicoAcolhimento): string {
+  return [
+    servico.endereco,
+    servico.bairro,
+    servico.municipio,
+    "São Paulo",
+    "Brasil",
+  ]
+    .filter((parte) => parte && parte.trim())
+    .join(", ");
 }
 
 const iconeMarcador = L.divIcon({
@@ -95,34 +134,106 @@ function AjustarEnquadramento({
 }
 
 function MapaServicos({ servicos }: MapaServicosProps) {
-  const servicosComCoordenadas = useMemo(() => {
-    return servicos.filter((servico) => {
-      const latitude = Number(servico.latitude);
-      const longitude = Number(servico.longitude);
+  const [servicosLocalizados, setServicosLocalizados] = useState<ServicoComCoordenadas[]>([]);
+  const [carregandoGeocodificacao, setCarregandoGeocodificacao] = useState(false);
+  const [erroGeocodificacao, setErroGeocodificacao] = useState("");
 
-      return (
-        servico.latitude !== null &&
-        servico.latitude !== undefined &&
-        servico.longitude !== null &&
-        servico.longitude !== undefined &&
-        Number.isFinite(latitude) &&
-        Number.isFinite(longitude) &&
-        latitude >= -90 &&
-        latitude <= 90 &&
-        longitude >= -180 &&
-        longitude <= 180 &&
-        (latitude !== 0 || longitude !== 0)
+  useEffect(() => {
+    let cancelado = false;
+
+    async function localizarServicos() {
+      setErroGeocodificacao("");
+
+      const servicosComCoordenadasValidas: ServicoComCoordenadas[] =
+        servicos
+          .filter(possuiCoordenadasValidas)
+          .map((servico) => ({
+            servico,
+            latitude: Number(servico.latitude),
+            longitude: Number(servico.longitude),
+          }));
+
+      const servicosSemCoordenadas = servicos.filter(
+        (servico) => !possuiCoordenadasValidas(servico)
       );
-    });
+
+      setServicosLocalizados(servicosComCoordenadasValidas);
+
+      if (servicosSemCoordenadas.length === 0) {
+        setCarregandoGeocodificacao(false);
+        return;
+      }
+
+      setCarregandoGeocodificacao(true);
+
+      try {
+        const encontrados: ServicoComCoordenadas[] = [];
+
+        for (let i = 0; i < servicosSemCoordenadas.length; i += 3) {
+          if (cancelado) return;
+
+          const lote = servicosSemCoordenadas.slice(i, i + 3);
+
+          const resultados = await Promise.all(
+            lote.map(async (servico) => {
+              const endereco = montarEndereco(servico);
+
+              if (!endereco.trim()) return null;
+
+              const resultado = await geocodificarEndereco(endereco);
+
+              if (!resultado) return null;
+
+              return {
+                servico,
+                latitude: resultado.latitude,
+                longitude: resultado.longitude,
+              };
+            })
+          );
+
+          if (cancelado) return;
+
+          resultados.forEach((resultado) => {
+            if (resultado) {
+              encontrados.push(resultado);
+            }
+          });
+
+          setServicosLocalizados([
+            ...servicosComCoordenadasValidas,
+            ...encontrados,
+          ]);
+        }
+      } catch (error) {
+        if (cancelado) return;
+
+        setErroGeocodificacao(
+          error instanceof Error
+            ? error.message
+            : "Não foi possível localizar alguns serviços."
+        );
+      } finally {
+        if (!cancelado) {
+          setCarregandoGeocodificacao(false);
+        }
+      }
+    }
+
+    localizarServicos();
+
+    return () => {
+      cancelado = true;
+    };
   }, [servicos]);
 
   const coordenadas = useMemo<[number, number][]>(
     () =>
-      servicosComCoordenadas.map((servico) => [
-        Number(servico.latitude),
-        Number(servico.longitude),
+      servicosLocalizados.map((item) => [
+        item.latitude,
+        item.longitude,
       ]),
-    [servicosComCoordenadas]
+    [servicosLocalizados]
   );
 
   const centroInicial: [number, number] =
@@ -147,10 +258,25 @@ function MapaServicos({ servicos }: MapaServicosProps) {
           </p>
         </div>
 
-        <span className="w-fit rounded-full bg-violet-50 px-3 py-1.5 text-sm font-semibold text-violet-700">
-          {coordenadas.length} localização(ões)
-        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="w-fit rounded-full bg-violet-50 px-3 py-1.5 text-sm font-semibold text-violet-700">
+            {coordenadas.length} localização(ões)
+          </span>
+
+          {carregandoGeocodificacao && (
+            <span className="flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700">
+              <LoaderCircle size={14} className="animate-spin" />
+              Localizando endereços...
+            </span>
+          )}
+        </div>
       </div>
+
+      {erroGeocodificacao && (
+        <div className="border-b border-amber-100 bg-amber-50 px-5 py-3 text-sm text-amber-800">
+          Alguns endereços não puderam ser localizados: {erroGeocodificacao}
+        </div>
+      )}
 
       {coordenadas.length > 0 ? (
         <MapContainer
@@ -166,13 +292,10 @@ function MapaServicos({ servicos }: MapaServicosProps) {
 
           <AjustarEnquadramento coordenadas={coordenadas} />
 
-          {servicosComCoordenadas.map((servico) => (
+          {servicosLocalizados.map(({ servico, latitude, longitude }) => (
             <Marker
               key={servico.idServico}
-              position={[
-                Number(servico.latitude),
-                Number(servico.longitude),
-              ]}
+              position={[latitude, longitude]}
               icon={iconeMarcador}
             >
               <Popup>
@@ -209,16 +332,31 @@ function MapaServicos({ servicos }: MapaServicosProps) {
         </MapContainer>
       ) : (
         <div className="flex h-[300px] flex-col items-center justify-center px-6 text-center">
-          <MapPin size={38} className="text-slate-300" />
+          {carregandoGeocodificacao ? (
+            <>
+              <LoaderCircle size={38} className="animate-spin text-violet-500" />
 
-          <h3 className="mt-4 font-semibold text-slate-700">
-            Nenhuma localização disponível
-          </h3>
+              <h3 className="mt-4 font-semibold text-slate-700">
+                Localizando serviços...
+              </h3>
 
-          <p className="mt-2 max-w-md text-sm leading-6 text-slate-500">
-            Não encontramos coordenadas geográficas válidas para os serviços
-            exibidos nesta consulta.
-          </p>
+              <p className="mt-2 max-w-md text-sm leading-6 text-slate-500">
+                Estamos consultando os endereços para encontrar suas coordenadas geográficas.
+              </p>
+            </>
+          ) : (
+            <>
+              <MapPin size={38} className="text-slate-300" />
+
+              <h3 className="mt-4 font-semibold text-slate-700">
+                Nenhuma localização disponível
+              </h3>
+
+              <p className="mt-2 max-w-md text-sm leading-6 text-slate-500">
+                Não encontramos coordenadas geográficas válidas para os serviços exibidos nesta consulta.
+              </p>
+            </>
+          )}
         </div>
       )}
     </section>
