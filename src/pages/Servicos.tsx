@@ -4,6 +4,37 @@ import { useSearchParams } from "react-router-dom";
 import { Search, MapPin, Phone, Clock, HeartHandshake, LoaderCircle, AlertCircle } from "lucide-react";
 import { buscarServicos, buscarCategoriasServico, buscarMunicipios } from "../services/servicosService";
 import type { ServicoAcolhimento, CategoriaServico } from "../services/servicoTypes";
+import MapaServicos from "../components/MapaServicos";
+
+function formatarTelefone(telefone: string): string {
+  const numeros = telefone.replace(/\D/g, "");
+
+  if (!numeros) return telefone.trim();
+
+  const numeroLocal =
+    numeros.startsWith("55") &&
+    (numeros.length === 12 || numeros.length === 13)
+      ? numeros.slice(2)
+      : numeros;
+
+  if (numeroLocal.length === 10) {
+    return `(${numeroLocal.slice(0, 2)}) ${numeroLocal.slice(2, 6)}-${numeroLocal.slice(6)}`;
+  }
+
+  if (numeroLocal.length === 11) {
+    return `(${numeroLocal.slice(0, 2)}) ${numeroLocal.slice(2, 7)}-${numeroLocal.slice(7)}`;
+  }
+
+  if (numeroLocal.length === 8) {
+    return `${numeroLocal.slice(0, 4)}-${numeroLocal.slice(4)}`;
+  }
+
+  if (numeroLocal.length === 9) {
+    return `${numeroLocal.slice(0, 5)}-${numeroLocal.slice(5)}`;
+  }
+
+  return telefone.trim();
+}
 
 function Servicos() {
   const [searchParams] = useSearchParams();
@@ -13,21 +44,10 @@ function Servicos() {
   const [municipios, setMunicipios] = useState<string[]>([]);
   const [regioes, setRegioes] = useState<string[]>([]);
 
-  const [busca, setBusca] = useState(
-    searchParams.get("busca") || ""
-  );
-
-  const [municipio, setMunicipio] = useState(
-    searchParams.get("municipio") || ""
-  );
-
-  const [regiao, setRegiao] = useState(
-    searchParams.get("regiao") || ""
-  );
-
-  const [categoria, setCategoria] = useState(
-    searchParams.get("categoria") || ""
-  );
+  const [busca, setBusca] = useState(searchParams.get("busca") || "");
+  const [municipio, setMunicipio] = useState(searchParams.get("municipio") || "");
+  const [regiao, setRegiao] = useState(searchParams.get("regiao") || "");
+  const [categoria, setCategoria] = useState(searchParams.get("categoria") || "");
 
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
@@ -55,6 +75,10 @@ function Servicos() {
           buscarServicos(),
         ]);
 
+        setServicos(listaServicos);
+        setCategorias(listaCategorias);
+        setMunicipios(listaMunicipios);
+
         const regioesDisponiveis = Array.from(
           new Set(
             todosServicos
@@ -63,9 +87,6 @@ function Servicos() {
           )
         ).sort((a, b) => a.localeCompare(b, "pt-BR"));
 
-        setServicos(listaServicos);
-        setCategorias(listaCategorias);
-        setMunicipios(listaMunicipios);
         setRegioes(regioesDisponiveis);
       } catch (error) {
         setErro(
@@ -119,7 +140,6 @@ function Servicos() {
         setErro("");
 
         const resultados = await buscarServicos();
-
         setServicos(resultados);
       } catch (error) {
         setErro(
@@ -137,11 +157,9 @@ function Servicos() {
 
   return (
     <main className="min-h-screen bg-slate-50">
-
       {/* Cabeçalho */}
       <section className="bg-gradient-to-br from-violet-700 via-violet-600 to-purple-500 px-6 py-16 text-white sm:py-20">
         <div className="mx-auto max-w-7xl">
-
           <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium">
             <HeartHandshake size={17} />
             Cuidado e acolhimento
@@ -155,13 +173,11 @@ function Servicos() {
             Encontre serviços de atendimento e acolhimento
             disponíveis para oferecer apoio e orientação.
           </p>
-
         </div>
       </section>
 
       {/* Conteúdo */}
       <section className="mx-auto max-w-7xl px-6 py-12 lg:px-8">
-
         {/* Pesquisa e filtros */}
         <form
           onSubmit={handleSearch}
@@ -178,7 +194,6 @@ function Servicos() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-
             {/* Nome */}
             <div>
               <label
@@ -291,7 +306,6 @@ function Servicos() {
                 Pesquisar
               </button>
             </div>
-
           </div>
 
           <div className="mt-4 flex justify-end">
@@ -308,7 +322,6 @@ function Servicos() {
 
         {/* Resultados */}
         <div className="mb-6 mt-12">
-
           <h2 className="text-2xl font-bold text-slate-900">
             Serviços disponíveis
           </h2>
@@ -318,7 +331,6 @@ function Servicos() {
               {servicos.length} serviço(s) encontrado(s)
             </p>
           )}
-
         </div>
 
         {/* Carregamento */}
@@ -338,18 +350,13 @@ function Servicos() {
         {/* Erro */}
         {!carregando && erro && (
           <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center">
-            <AlertCircle
-              size={32}
-              className="mx-auto text-red-500"
-            />
+            <AlertCircle size={32} className="mx-auto text-red-500" />
 
             <h3 className="mt-3 font-semibold text-red-800">
               Não foi possível carregar os serviços
             </h3>
 
-            <p className="mt-2 text-sm text-red-700">
-              {erro}
-            </p>
+            <p className="mt-2 text-sm text-red-700">{erro}</p>
 
             <button
               type="button"
@@ -361,17 +368,20 @@ function Servicos() {
           </div>
         )}
 
+        {/* Mapa de serviços - integração Leaflet preservada */}
+        {!carregando && !erro && servicos.length > 0 && (
+          <MapaServicos servicos={servicos} />
+        )}
+
         {/* Lista de serviços */}
         {!carregando && !erro && servicos.length > 0 && (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-
             {servicos.map((servico) => (
               <article
                 key={servico.idServico}
                 className="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-violet-200 hover:shadow-lg hover:shadow-violet-100/60"
               >
                 <div className="mb-5 flex items-start justify-between gap-3">
-
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-700 transition-colors group-hover:bg-violet-100">
                     <HeartHandshake size={25} />
                   </div>
@@ -379,7 +389,6 @@ function Servicos() {
                   <span className="rounded-full bg-teal-50 px-3 py-1.5 text-xs font-semibold text-teal-700">
                     {servico.nomeCategoria}
                   </span>
-
                 </div>
 
                 <h3 className="text-lg font-bold leading-snug text-slate-900">
@@ -392,7 +401,6 @@ function Servicos() {
                 </p>
 
                 <div className="mt-6 space-y-3 border-t border-slate-100 pt-5">
-
                   <div className="flex items-start gap-3 text-sm text-slate-600">
                     <MapPin
                       size={18}
@@ -414,7 +422,7 @@ function Servicos() {
                         className="shrink-0 text-violet-600"
                       />
 
-                      <span>{servico.telefone}</span>
+                      <span>{formatarTelefone(servico.telefone)}</span>
                     </div>
                   )}
 
@@ -428,19 +436,15 @@ function Servicos() {
                       <span>{servico.horarioFuncionamento}</span>
                     </div>
                   )}
-
                 </div>
-
               </article>
             ))}
-
           </div>
         )}
 
         {/* Nenhum resultado */}
         {!carregando && !erro && servicos.length === 0 && (
           <div className="rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center">
-
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-violet-50 text-violet-600">
               <Search size={30} />
             </div>
@@ -453,10 +457,8 @@ function Servicos() {
               Não encontramos serviços com os critérios informados.
               Tente modificar sua pesquisa ou selecionar outros filtros.
             </p>
-
           </div>
         )}
-
       </section>
     </main>
   );
