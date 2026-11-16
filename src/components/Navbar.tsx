@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
-import { Menu, X, UserPlus } from "lucide-react";
+import { Menu, X, UserPlus, LogIn } from "lucide-react";
 
 const navigation = [
   { name: "Início", path: "/" },
@@ -56,7 +56,16 @@ function Navbar() {
           ))}
         </div>
 
-        <div className="hidden md:block">
+        <div className="hidden items-center gap-3 md:flex">
+
+          <NavLink
+            to="/login"
+            className="inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-violet-700 transition-colors hover:bg-violet-50"
+          >
+            <LogIn size={17} />
+            Entrar
+          </NavLink>
+
           <NavLink
             to="/cadastro"
             className="inline-flex items-center gap-2 rounded-xl bg-violet-700 px-5 py-3 text-sm font-semibold text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-violet-800"
@@ -64,6 +73,7 @@ function Navbar() {
             <UserPlus size={17} />
             Criar conta
           </NavLink>
+
         </div>
 
         <button
@@ -100,9 +110,18 @@ function Navbar() {
             ))}
 
             <NavLink
+              to="/login"
+              onClick={() => setMenuOpen(false)}
+              className="mt-2 inline-flex items-center justify-center gap-2 rounded-xl border border-violet-200 px-5 py-3 text-sm font-semibold text-violet-700 transition-colors hover:bg-violet-50"
+            >
+              <LogIn size={17} />
+              Entrar
+            </NavLink>
+
+            <NavLink
               to="/cadastro"
               onClick={() => setMenuOpen(false)}
-              className="mt-2 inline-flex items-center justify-center gap-2 rounded-xl bg-violet-700 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-violet-800"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-violet-700 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-violet-800"
             >
               <UserPlus size={17} />
               Criar conta

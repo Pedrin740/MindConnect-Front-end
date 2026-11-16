@@ -12,6 +12,7 @@ import ServicoDetalhe from "./pages/ServicoDetalhe";
 import Conteudos from "./pages/Conteudos";
 import Diario from "./pages/Diario";
 import Cadastro from "./pages/Cadastro";
+import Login from "./pages/Login";
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
           <Route path="/diario" element={<Diario />} />
 
           <Route path="/cadastro" element={<Cadastro />} />
+          <Route path="/login" element={<Login />} />
         </Route>
       </Routes>
     </BrowserRouter>
