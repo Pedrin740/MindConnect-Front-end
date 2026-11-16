@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
-import { Menu, X } from "lucide-react";
+import { Menu, X, UserPlus } from "lucide-react";
 
 const navigation = [
   { name: "Início", path: "/" },
@@ -24,6 +24,7 @@ function Navbar() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-violet-100/70 bg-white/85 backdrop-blur-xl">
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 lg:px-8">
+
         <NavLink
           to="/"
           onClick={() => setMenuOpen(false)}
@@ -55,6 +56,16 @@ function Navbar() {
           ))}
         </div>
 
+        <div className="hidden md:block">
+          <NavLink
+            to="/cadastro"
+            className="inline-flex items-center gap-2 rounded-xl bg-violet-700 px-5 py-3 text-sm font-semibold text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-violet-800"
+          >
+            <UserPlus size={17} />
+            Criar conta
+          </NavLink>
+        </div>
+
         <button
           type="button"
           onClick={() => setMenuOpen((current) => !current)}
@@ -64,11 +75,13 @@ function Navbar() {
         >
           {menuOpen ? <X size={25} /> : <Menu size={25} />}
         </button>
+
       </nav>
 
       {menuOpen && (
         <div className="border-t border-violet-100 bg-white px-5 py-4 shadow-lg md:hidden">
           <div className="mx-auto flex max-w-7xl flex-col gap-1">
+
             {navigation.map((item) => (
               <NavLink
                 key={item.path}
@@ -85,6 +98,16 @@ function Navbar() {
                 {item.name}
               </NavLink>
             ))}
+
+            <NavLink
+              to="/cadastro"
+              onClick={() => setMenuOpen(false)}
+              className="mt-2 inline-flex items-center justify-center gap-2 rounded-xl bg-violet-700 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-violet-800"
+            >
+              <UserPlus size={17} />
+              Criar conta
+            </NavLink>
+
           </div>
         </div>
       )}

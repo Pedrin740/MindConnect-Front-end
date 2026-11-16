@@ -11,6 +11,7 @@ import Servicos from "./pages/Servicos";
 import ServicoDetalhe from "./pages/ServicoDetalhe";
 import Conteudos from "./pages/Conteudos";
 import Diario from "./pages/Diario";
+import Cadastro from "./pages/Cadastro";
 
 function App() {
   return (
@@ -28,6 +29,8 @@ function App() {
 
           <Route path="/conteudos" element={<Conteudos />} />
           <Route path="/diario" element={<Diario />} />
+
+          <Route path="/cadastro" element={<Cadastro />} />
         </Route>
       </Routes>
     </BrowserRouter>
