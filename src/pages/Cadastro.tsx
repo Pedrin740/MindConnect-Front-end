@@ -1,21 +1,24 @@
 import { useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, HeartHandshake, UserPlus } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
 function Cadastro() {
+  const { register } = useAuth();
+  const navigate = useNavigate();
+
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [confirmarSenha, setConfirmarSenha] = useState("");
 
   const [erro, setErro] = useState("");
-  const [mensagem, setMensagem] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     setErro("");
-    setMensagem("");
 
     if (senha !== confirmarSenha) {
       setErro("As senhas informadas não são iguais.");
@@ -27,9 +30,23 @@ function Cadastro() {
       return;
     }
 
-    setMensagem(
-      "Dados validados! O envio do cadastro será habilitado na integração com a API."
-    );
+    try {
+      setIsSubmitting(true);
+
+      await register(nome, email, senha);
+
+      navigate("/", { replace: true });
+    } catch (error) {
+      console.error("Erro ao cadastrar usuário:", error);
+
+      setErro(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível realizar o cadastro. Tente novamente."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -84,7 +101,6 @@ function Cadastro() {
                 onChange={(event) => {
                   setNome(event.target.value);
                   setErro("");
-                  setMensagem("");
                 }}
                 placeholder="Digite seu nome completo"
                 maxLength={100}
@@ -109,7 +125,6 @@ function Cadastro() {
                 onChange={(event) => {
                   setEmail(event.target.value);
                   setErro("");
-                  setMensagem("");
                 }}
                 placeholder="seuemail@exemplo.com"
                 maxLength={150}
@@ -134,7 +149,6 @@ function Cadastro() {
                 onChange={(event) => {
                   setSenha(event.target.value);
                   setErro("");
-                  setMensagem("");
                 }}
                 placeholder="Crie uma senha"
                 minLength={8}
@@ -163,7 +177,6 @@ function Cadastro() {
                 onChange={(event) => {
                   setConfirmarSenha(event.target.value);
                   setErro("");
-                  setMensagem("");
                 }}
                 placeholder="Digite sua senha novamente"
                 minLength={8}
@@ -182,30 +195,28 @@ function Cadastro() {
               </div>
             )}
 
-            {mensagem && (
-              <div
-                role="status"
-                className="rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm leading-6 text-teal-700"
-              >
-                {mensagem}
-              </div>
-            )}
-
             <button
               type="submit"
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-violet-700 px-6 font-semibold text-white shadow-lg shadow-violet-200 transition-all duration-300 hover:-translate-y-0.5 hover:bg-violet-800 hover:shadow-xl"
+              disabled={isSubmitting}
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-violet-700 px-6 font-semibold text-white shadow-lg shadow-violet-200 transition-all duration-300 hover:-translate-y-0.5 hover:bg-violet-800 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-60"
             >
               <UserPlus size={19} />
-              Criar minha conta
+              {isSubmitting ? "Criando conta..." : "Criar minha conta"}
             </button>
 
           </form>
 
           <div className="mt-7 border-t border-slate-100 pt-6 text-center">
             <p className="text-sm text-slate-500">
-              Ao criar uma conta, você poderá acessar os recursos
-              personalizados do Mind Connect.
+              Já possui uma conta?
             </p>
+
+            <Link
+              to="/login"
+              className="mt-2 inline-block text-sm font-semibold text-violet-700 transition-colors hover:text-violet-900"
+            >
+              Entrar
+            </Link>
           </div>
 
         </div>

@@ -1,28 +1,40 @@
 import { useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, HeartHandshake, LogIn } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
 function Login() {
+  const { login } = useAuth();
+  const navigate = useNavigate();
+
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
 
   const [erro, setErro] = useState("");
-  const [mensagem, setMensagem] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     setErro("");
-    setMensagem("");
 
-    if (!email.trim() || !senha.trim()) {
-      setErro("Preencha todos os campos para continuar.");
-      return;
+    try {
+      setIsSubmitting(true);
+
+      await login(email, senha);
+
+      navigate("/", { replace: true });
+    } catch (error) {
+      console.error("Erro ao realizar login:", error);
+
+      setErro(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível realizar o login. Verifique seus dados."
+      );
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setMensagem(
-      "Dados validados! A autenticação será habilitada na integração com a API."
-    );
   }
 
   return (
@@ -77,7 +89,6 @@ function Login() {
                 onChange={(event) => {
                   setEmail(event.target.value);
                   setErro("");
-                  setMensagem("");
                 }}
                 placeholder="seuemail@exemplo.com"
                 maxLength={150}
@@ -102,7 +113,6 @@ function Login() {
                 onChange={(event) => {
                   setSenha(event.target.value);
                   setErro("");
-                  setMensagem("");
                 }}
                 placeholder="Digite sua senha"
                 autoComplete="current-password"
@@ -120,21 +130,13 @@ function Login() {
               </div>
             )}
 
-            {mensagem && (
-              <div
-                role="status"
-                className="rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm leading-6 text-teal-700"
-              >
-                {mensagem}
-              </div>
-            )}
-
             <button
               type="submit"
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-violet-700 px-6 font-semibold text-white shadow-lg shadow-violet-200 transition-all duration-300 hover:-translate-y-0.5 hover:bg-violet-800 hover:shadow-xl"
+              disabled={isSubmitting}
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-violet-700 px-6 font-semibold text-white shadow-lg shadow-violet-200 transition-all duration-300 hover:-translate-y-0.5 hover:bg-violet-800 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-60"
             >
               <LogIn size={19} />
-              Entrar
+              {isSubmitting ? "Entrando..." : "Entrar"}
             </button>
 
           </form>
