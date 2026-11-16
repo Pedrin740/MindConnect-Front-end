@@ -133,7 +133,7 @@ function AjustarEnquadramento({
   return null;
 }
 
-function MapaServicos({ servicos }: MapaServicosProps) {
+function MapaServicos(_props: MapaServicosProps) {
   const [todosServicos, setTodosServicos] = useState<ServicoAcolhimento[]>([]);
   const [categorias, setCategorias] = useState<CategoriaServico[]>([]);
 

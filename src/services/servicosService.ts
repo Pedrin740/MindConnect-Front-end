@@ -1,5 +1,6 @@
+
 import { api } from "./api";
-import type { ServicoAcolhimento,  CategoriaServico } from "./servicoTypes";
+import type { ServicoAcolhimento, CategoriaServico } from "./servicoTypes";
 
 export function buscarServicos(
   nome?: string,
