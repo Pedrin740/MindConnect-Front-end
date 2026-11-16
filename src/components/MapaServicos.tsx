@@ -1,10 +1,10 @@
-
 import { useEffect, useMemo, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
-import { MapPin, LoaderCircle } from "lucide-react";
+import { MapPin, LoaderCircle, Filter } from "lucide-react";
 import type { LatLngBoundsExpression } from "leaflet";
-import type { ServicoAcolhimento } from "../services/servicoTypes";
+import type { ServicoAcolhimento, CategoriaServico } from "../services/servicoTypes";
+import { buscarServicos, buscarCategoriasServico } from "../services/servicosService";
 import { geocodificarEndereco } from "../services/geocodificacaoService";
 import "leaflet/dist/leaflet.css";
 
@@ -134,18 +134,79 @@ function AjustarEnquadramento({
 }
 
 function MapaServicos({ servicos }: MapaServicosProps) {
+  const [todosServicos, setTodosServicos] = useState<ServicoAcolhimento[]>([]);
+  const [categorias, setCategorias] = useState<CategoriaServico[]>([]);
+
+  const [categoriaSelecionada, setCategoriaSelecionada] = useState("");
+
+  const [carregandoDados, setCarregandoDados] = useState(true);
+  const [erroDados, setErroDados] = useState("");
+
   const [servicosLocalizados, setServicosLocalizados] = useState<ServicoComCoordenadas[]>([]);
   const [carregandoGeocodificacao, setCarregandoGeocodificacao] = useState(false);
   const [erroGeocodificacao, setErroGeocodificacao] = useState("");
 
+  // Carrega todos os serviços e todas as categorias independentemente
+  // dos filtros utilizados na página de serviços.
+  useEffect(() => {
+    let cancelado = false;
+
+    async function carregarDadosMapa() {
+      try {
+        setCarregandoDados(true);
+        setErroDados("");
+
+        const [listaServicos, listaCategorias] = await Promise.all([
+          buscarServicos(),
+          buscarCategoriasServico(),
+        ]);
+
+        if (cancelado) return;
+
+        setTodosServicos(listaServicos);
+        setCategorias(listaCategorias);
+      } catch (error) {
+        if (!cancelado) {
+          setErroDados(
+            error instanceof Error
+              ? error.message
+              : "Não foi possível carregar os dados do mapa."
+          );
+        }
+      } finally {
+        if (!cancelado) {
+          setCarregandoDados(false);
+        }
+      }
+    }
+
+    carregarDadosMapa();
+
+    return () => {
+      cancelado = true;
+    };
+  }, []);
+
+  // Filtra os serviços exclusivamente para o mapa.
+  const servicosFiltrados = useMemo(() => {
+    if (!categoriaSelecionada) return todosServicos;
+
+    return todosServicos.filter(
+      (servico) =>
+        String(servico.idCategoriaServico) === categoriaSelecionada
+    );
+  }, [todosServicos, categoriaSelecionada]);
+
+  // Localiza os serviços e utiliza as coordenadas já cadastradas quando disponíveis.
   useEffect(() => {
     let cancelado = false;
 
     async function localizarServicos() {
       setErroGeocodificacao("");
+      setServicosLocalizados([]);
 
       const servicosComCoordenadasValidas: ServicoComCoordenadas[] =
-        servicos
+        servicosFiltrados
           .filter(possuiCoordenadasValidas)
           .map((servico) => ({
             servico,
@@ -153,7 +214,7 @@ function MapaServicos({ servicos }: MapaServicosProps) {
             longitude: Number(servico.longitude),
           }));
 
-      const servicosSemCoordenadas = servicos.filter(
+      const servicosSemCoordenadas = servicosFiltrados.filter(
         (servico) => !possuiCoordenadasValidas(servico)
       );
 
@@ -220,12 +281,14 @@ function MapaServicos({ servicos }: MapaServicosProps) {
       }
     }
 
-    localizarServicos();
+    if (!carregandoDados && !erroDados) {
+      localizarServicos();
+    }
 
     return () => {
       cancelado = true;
     };
-  }, [servicos]);
+  }, [servicosFiltrados, carregandoDados, erroDados]);
 
   const coordenadas = useMemo<[number, number][]>(
     () =>
@@ -243,7 +306,8 @@ function MapaServicos({ servicos }: MapaServicosProps) {
 
   return (
     <section className="mb-10 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div className="flex flex-col gap-2 border-b border-slate-100 p-5 sm:flex-row sm:items-center sm:justify-between">
+      {/* Cabeçalho do mapa */}
+      <div className="flex flex-col gap-4 border-b border-slate-100 p-5 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <div className="flex items-center gap-2">
             <MapPin size={21} className="text-violet-600" />
@@ -258,19 +322,57 @@ function MapaServicos({ servicos }: MapaServicosProps) {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="w-fit rounded-full bg-violet-50 px-3 py-1.5 text-sm font-semibold text-violet-700">
-            {coordenadas.length} localização(ões)
-          </span>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          {/* Filtro por categoria */}
+          <div className="w-full sm:w-64">
+            <label
+              htmlFor="categoria-mapa"
+              className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-700"
+            >
+              <Filter size={16} className="text-violet-600" />
+              Categoria no mapa
+            </label>
 
-          {carregandoGeocodificacao && (
-            <span className="flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700">
-              <LoaderCircle size={14} className="animate-spin" />
-              Localizando endereços...
+            <select
+              id="categoria-mapa"
+              value={categoriaSelecionada}
+              onChange={(event) => setCategoriaSelecionada(event.target.value)}
+              disabled={carregandoDados || Boolean(erroDados)}
+              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-100 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <option value="">Todas as categorias</option>
+
+              {categorias.map((categoria) => (
+                <option
+                  key={categoria.idCategoriaServico}
+                  value={String(categoria.idCategoriaServico)}
+                >
+                  {categoria.nome}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="w-fit rounded-full bg-violet-50 px-3 py-1.5 text-sm font-semibold text-violet-700">
+              {coordenadas.length} localização(ões)
             </span>
-          )}
+
+            {(carregandoDados || carregandoGeocodificacao) && (
+              <span className="flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700">
+                <LoaderCircle size={14} className="animate-spin" />
+                {carregandoDados ? "Carregando mapa..." : "Localizando endereços..."}
+              </span>
+            )}
+          </div>
         </div>
       </div>
+
+      {erroDados && (
+        <div className="border-b border-red-100 bg-red-50 px-5 py-3 text-sm text-red-800">
+          {erroDados}
+        </div>
+      )}
 
       {erroGeocodificacao && (
         <div className="border-b border-amber-100 bg-amber-50 px-5 py-3 text-sm text-amber-800">
@@ -278,8 +380,9 @@ function MapaServicos({ servicos }: MapaServicosProps) {
         </div>
       )}
 
-      {coordenadas.length > 0 ? (
+      {!carregandoDados && !erroDados && coordenadas.length > 0 ? (
         <MapContainer
+          key={categoriaSelecionada || "todas"}
           center={centroInicial}
           zoom={11}
           scrollWheelZoom={true}
@@ -332,16 +435,16 @@ function MapaServicos({ servicos }: MapaServicosProps) {
         </MapContainer>
       ) : (
         <div className="flex h-[300px] flex-col items-center justify-center px-6 text-center">
-          {carregandoGeocodificacao ? (
+          {carregandoDados || carregandoGeocodificacao ? (
             <>
               <LoaderCircle size={38} className="animate-spin text-violet-500" />
 
               <h3 className="mt-4 font-semibold text-slate-700">
-                Localizando serviços...
+                Carregando localizações...
               </h3>
 
               <p className="mt-2 max-w-md text-sm leading-6 text-slate-500">
-                Estamos consultando os endereços para encontrar suas coordenadas geográficas.
+                Estamos consultando os serviços e suas coordenadas geográficas.
               </p>
             </>
           ) : (
@@ -353,7 +456,7 @@ function MapaServicos({ servicos }: MapaServicosProps) {
               </h3>
 
               <p className="mt-2 max-w-md text-sm leading-6 text-slate-500">
-                Não encontramos coordenadas geográficas válidas para os serviços exibidos nesta consulta.
+                Não encontramos coordenadas geográficas válidas para os serviços desta categoria.
               </p>
             </>
           )}
