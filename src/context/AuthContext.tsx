@@ -1,45 +1,16 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  type ReactNode,
-} from "react";
-
-import {
-  cadastrarUsuario,
-  realizarLogin,
-  buscarUsuarioAutenticado,
-  type UsuarioAutenticado,
-} from "../services/authService";
-
-export type AuthUser = UsuarioAutenticado;
-
-interface AuthContextData {
-  user: AuthUser | null;
-  token: string | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  login: (email: string, senha: string) => Promise<void>;
-  register: (
-    nome: string,
-    email: string,
-    senha: string
-  ) => Promise<void>;
-  logout: () => Promise<void>;
-}
-
-const AUTH_STORAGE_KEY = "mindconnect_token";
-const USER_ID_STORAGE_KEY = "mindconnect_user_id";
-const ADMIN_STORAGE_KEY = "mindconnect_administrador";
-const ACCESS_LEVEL_STORAGE_KEY = "mindconnect_nivel_acesso";
-
-const AuthContext = createContext<AuthContextData | undefined>(
-  undefined
-);
+import { useEffect, useState, type ReactNode } from "react";
+import { cadastrarUsuario, realizarLogin, buscarUsuarioAutenticado } from "../services/authService";
+import { AuthContext, type AuthUser, type AuthContextData, AUTH_STORAGE_KEY, USER_ID_STORAGE_KEY, ADMIN_STORAGE_KEY, ACCESS_LEVEL_STORAGE_KEY } from "./authContextDefinition";
 
 interface AuthProviderProps {
   children: ReactNode;
+}
+
+function limparSessao(): void {
+  localStorage.removeItem(AUTH_STORAGE_KEY);
+  localStorage.removeItem(USER_ID_STORAGE_KEY);
+  localStorage.removeItem(ADMIN_STORAGE_KEY);
+  localStorage.removeItem(ACCESS_LEVEL_STORAGE_KEY);
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
@@ -58,8 +29,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     async function restaurarSessao() {
       if (!token) {
-        setUser(null);
-        setIsLoading(false);
+        if (ativo) {
+          setUser(null);
+          setIsLoading(false);
+        }
         return;
       }
 
@@ -69,13 +42,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       if (!idUsuario || !Number.isInteger(idUsuario)) {
         limparSessao();
-        setUser(null);
-        setToken(null);
-        setIsLoading(false);
+
+        if (ativo) {
+          setUser(null);
+          setToken(null);
+          setIsLoading(false);
+        }
         return;
       }
 
-      setIsLoading(true);
+      if (ativo) {
+        setIsLoading(true);
+      }
 
       try {
         const usuario = await buscarUsuarioAutenticado(
@@ -115,13 +93,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       ativo = false;
     };
   }, [token]);
-
-  function limparSessao() {
-    localStorage.removeItem(AUTH_STORAGE_KEY);
-    localStorage.removeItem(USER_ID_STORAGE_KEY);
-    localStorage.removeItem(ADMIN_STORAGE_KEY);
-    localStorage.removeItem(ACCESS_LEVEL_STORAGE_KEY);
-  }
 
   async function login(
     email: string,
@@ -197,16 +168,4 @@ export function AuthProvider({ children }: AuthProviderProps) {
       {children}
     </AuthContext.Provider>
   );
-}
-
-export function useAuth(): AuthContextData {
-  const context = useContext(AuthContext);
-
-  if (!context) {
-    throw new Error(
-      "useAuth deve ser utilizado dentro de AuthProvider."
-    );
-  }
-
-  return context;
 }

@@ -1,31 +1,12 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  type ReactNode,
-} from "react";
-
+import { useEffect, useState, type ReactNode } from "react";
 import type { Conteudo } from "../services/conteudoTypes";
-
-interface FavoritesContextData {
-  favoritos: Conteudo[];
-  adicionarFavorito: (conteudo: Conteudo) => void;
-  removerFavorito: (idConteudo: number) => void;
-  alternarFavorito: (conteudo: Conteudo) => void;
-  verificarFavorito: (idConteudo: number) => boolean;
-  limparFavoritos: () => void;
-}
+import { FavoritesContext, type FavoritesContextData } from "./favoritesContextDefinition";
 
 interface FavoritesProviderProps {
   children: ReactNode;
 }
 
 const FAVORITES_STORAGE_KEY = "mindconnect_favoritos";
-
-const FavoritesContext = createContext<
-  FavoritesContextData | undefined
->(undefined);
 
 export function FavoritesProvider({
   children,
@@ -37,7 +18,7 @@ export function FavoritesProvider({
       );
 
       return favoritosSalvos
-        ? JSON.parse(favoritosSalvos)
+        ? JSON.parse(favoritosSalvos) as Conteudo[]
         : [];
     } catch {
       return [];
@@ -113,16 +94,4 @@ export function FavoritesProvider({
       {children}
     </FavoritesContext.Provider>
   );
-}
-
-export function useFavorites(): FavoritesContextData {
-  const context = useContext(FavoritesContext);
-
-  if (!context) {
-    throw new Error(
-      "useFavorites deve ser utilizado dentro de FavoritesProvider."
-    );
-  }
-
-  return context;
 }

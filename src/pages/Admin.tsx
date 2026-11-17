@@ -1,27 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-
-import {
-  ShieldCheck,
-  Users,
-  UserPlus,
-  Trash2,
-  RefreshCw,
-  Shield,
-  Search,
-} from "lucide-react";
-
-import { useAuth } from "../context/AuthContext";
-
-import {
-  cadastrarAdministrador,
-  excluirAdministrador,
-  listarAdministradores,
-  listarUsuarios,
-  atualizarNivelAdministrador,
-  type Administrador,
-  type UsuarioAdmin,
-  type NivelAcessoAdmin,
-} from "../services/administradorService";
+import { ShieldCheck, Users, UserPlus, Trash2, RefreshCw, Shield, Search } from "lucide-react";
+import { useAuth } from "../hooks/useAuth";
+import { cadastrarAdministrador, excluirAdministrador, listarAdministradores, listarUsuarios, atualizarNivelAdministrador, type Administrador,type UsuarioAdmin, type NivelAcessoAdmin } from "../services/administradorService";
 
 function Admin() {
   const { user, token, isLoading: authLoading } = useAuth();

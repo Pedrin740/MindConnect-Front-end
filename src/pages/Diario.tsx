@@ -1,27 +1,8 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-
-import {
-  BookHeart,
-  CalendarDays,
-  Heart,
-  LockKeyhole,
-  Smile,
-  Meh,
-  Frown,
-  Plus,
-  Trash2,
-  X,
-} from "lucide-react";
-
-import { useAuth } from "../context/AuthContext";
+import { BookHeart, CalendarDays, Heart, LockKeyhole, Smile, Meh, Frown, Plus, Trash2, X } from "lucide-react";
+import { useAuth } from "../hooks/useAuth";
 import { ApiError } from "../services/api";
-
-import {
-  cadastrarRegistroBemEstar,
-  excluirRegistroBemEstar,
-  listarRegistrosBemEstar,
-  type RegistroBemEstar,
-} from "../services/registroBemEstarService";
+import { cadastrarRegistroBemEstar, excluirRegistroBemEstar, listarRegistrosBemEstar, type RegistroBemEstar } from "../services/registroBemEstarService";
 
 type Humor = "Muito bem" | "Bem" | "Neutro" | "Mal" | "Muito mal";
 
