@@ -35,6 +35,13 @@ export interface LoginDados {
   senha: string;
 }
 
+export interface AtualizacaoContaDados {
+  nome: string;
+  email: string;
+  senhaAtual: string;
+  novaSenha?: string;
+}
+
 export async function cadastrarUsuario(
   dados: CadastroDados
 ): Promise<UsuarioCadastro> {
@@ -80,4 +87,28 @@ export async function buscarUsuarioAutenticado(
     administrador: false,
     nivelAcesso: "",
   };
+}
+
+export async function atualizarDadosConta(
+  token: string,
+  idUsuario: number,
+  dados: AtualizacaoContaDados
+): Promise<UsuarioCadastro> {
+  const { email, senhaAtual, novaSenha } = dados;
+
+  return api<UsuarioCadastro>(
+    `/api/usuarios/${idUsuario}/credenciais`,
+    {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email,
+        senhaAtual,
+        ...(novaSenha ? { novaSenha } : {}),
+      }),
+    }
+  );
 }

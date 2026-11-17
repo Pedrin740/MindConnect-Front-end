@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { NavLink } from "react-router-dom";
-import { Menu, X, UserPlus, LogIn, LogOut, UserRound } from "lucide-react";
+import { NavLink, Link } from "react-router-dom";
+import { Menu, X, UserPlus, LogIn, LogOut, UserRound, Settings } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
+import { useTheme } from "../context/ThemeContext";
 
 const navigation = [
   { name: "Início", path: "/" },
@@ -17,17 +18,52 @@ const navigation = [
 function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const { user, isAuthenticated, logout } = useAuth();
+  const {
+    user,
+    isAuthenticated,
+    logout,
+    isLoading,
+  } = useAuth();
+
+  const { theme } = useTheme();
+
+  const temaEscuro = theme === "escuro";
+
+  const estiloHeader = temaEscuro
+    ? "border-slate-700 bg-slate-900/95"
+    : theme === "intermediario"
+      ? "border-slate-300 bg-slate-100/95"
+      : "border-violet-100/70 bg-white/85";
+
+  const estiloTexto = temaEscuro
+    ? "text-slate-200 hover:text-violet-300"
+    : "text-slate-600 hover:text-violet-700";
+
+  const estiloMenu = temaEscuro
+    ? "border-slate-700 bg-slate-900"
+    : theme === "intermediario"
+      ? "border-slate-300 bg-slate-100"
+      : "border-violet-100 bg-white";
 
   const visibleNavigation = user?.administrador
-    ? [...navigation, { name: "Administração", path: "/admin" }]
+    ? [
+        ...navigation,
+        {
+          name: "Administração",
+          path: "/admin",
+        },
+      ]
     : navigation;
 
-  const linkClasses = ({ isActive }: { isActive: boolean }) =>
+  const linkClasses = ({
+    isActive,
+  }: {
+    isActive: boolean;
+  }) =>
     `relative whitespace-nowrap text-sm font-medium transition-colors duration-200 ${
       isActive
         ? "text-violet-700"
-        : "text-slate-600 hover:text-violet-700"
+        : estiloTexto
     }`;
 
   async function handleLogout() {
@@ -36,7 +72,9 @@ function Navbar() {
   }
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-violet-100/70 bg-white/85 backdrop-blur-xl">
+    <header
+      className={`sticky top-0 z-50 w-full border-b backdrop-blur-xl transition-colors duration-300 ${estiloHeader}`}
+    >
       <nav className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-5 lg:px-8">
         <NavLink
           to="/"
@@ -70,9 +108,22 @@ function Navbar() {
         </div>
 
         <div className="hidden shrink-0 items-center justify-end gap-2 lg:flex xl:gap-3">
-          {isAuthenticated && user ? (
+          {isLoading ? (
+            <div
+              className="h-10 w-36 animate-pulse rounded-xl bg-slate-200"
+              aria-label="Carregando conta"
+            />
+          ) : isAuthenticated && user ? (
             <>
-              <div className="flex max-w-36 items-center gap-2 rounded-xl px-2 py-3 text-sm font-semibold text-slate-700">
+              <Link
+                to="/configuracoes"
+                className={`inline-flex max-w-44 items-center gap-2 rounded-xl px-3 py-3 text-sm font-semibold transition-colors hover:bg-violet-50 hover:text-violet-700 ${
+                  temaEscuro
+                    ? "text-slate-200 hover:bg-slate-800 hover:text-violet-300"
+                    : "text-slate-700"
+                }`}
+                aria-label="Abrir configurações da conta"
+              >
                 <UserRound
                   size={18}
                   className="shrink-0 text-violet-700"
@@ -81,7 +132,12 @@ function Navbar() {
                 <span className="truncate">
                   {user.nome}
                 </span>
-              </div>
+
+                <Settings
+                  size={15}
+                  className="shrink-0 text-slate-400"
+                />
+              </Link>
 
               <button
                 type="button"
@@ -115,9 +171,13 @@ function Navbar() {
 
         <button
           type="button"
-          onClick={() => setMenuOpen((current) => !current)}
+          onClick={() =>
+            setMenuOpen((current) => !current)
+          }
           className="shrink-0 rounded-xl p-2 text-violet-700 transition-colors hover:bg-violet-50 lg:hidden"
-          aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}
+          aria-label={
+            menuOpen ? "Fechar menu" : "Abrir menu"
+          }
           aria-expanded={menuOpen}
           aria-controls="menu-mobile"
         >
@@ -128,7 +188,7 @@ function Navbar() {
       {menuOpen && (
         <div
           id="menu-mobile"
-          className="border-t border-violet-100 bg-white px-4 py-4 shadow-lg sm:px-5 lg:hidden"
+          className={`border-t px-4 py-4 shadow-lg sm:px-5 lg:hidden ${estiloMenu}`}
         >
           <div className="mx-auto flex max-w-7xl flex-col gap-1">
             {visibleNavigation.map((item) => (
@@ -140,7 +200,9 @@ function Navbar() {
                   `rounded-xl px-4 py-3 text-sm font-medium transition-colors ${
                     isActive
                       ? "bg-violet-50 text-violet-700"
-                      : "text-slate-600 hover:bg-violet-50 hover:text-violet-700"
+                      : temaEscuro
+                        ? "text-slate-200 hover:bg-slate-800 hover:text-violet-300"
+                        : "text-slate-600 hover:bg-violet-50 hover:text-violet-700"
                   }`
                 }
               >
@@ -148,15 +210,22 @@ function Navbar() {
               </NavLink>
             ))}
 
-            {isAuthenticated && user ? (
+            {isLoading ? (
+              <div
+                className="mt-2 h-11 animate-pulse rounded-xl bg-slate-200"
+                aria-label="Carregando conta"
+              />
+            ) : isAuthenticated && user ? (
               <>
-                <div className="mt-2 flex items-center gap-2 rounded-xl bg-violet-50 px-4 py-3 text-sm font-semibold text-violet-800">
+                <Link
+                  to="/configuracoes"
+                  onClick={() => setMenuOpen(false)}
+                  className="mt-2 inline-flex items-center justify-center gap-2 rounded-xl bg-violet-50 px-4 py-3 text-sm font-semibold text-violet-800"
+                >
                   <UserRound size={18} />
-
-                  <span className="truncate">
-                    {user.nome}
-                  </span>
-                </div>
+                  {user.nome}
+                  <Settings size={16} />
+                </Link>
 
                 <button
                   type="button"
