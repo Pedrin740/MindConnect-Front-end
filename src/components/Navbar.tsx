@@ -23,20 +23,19 @@ function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-violet-100/70 bg-white/85 backdrop-blur-xl">
-      <nav className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 lg:px-8">
-
+      <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-5 lg:px-8">
         <NavLink
           to="/"
           onClick={() => setMenuOpen(false)}
-          className="flex items-center gap-2"
+          className="flex min-w-0 items-center gap-2"
           aria-label="Mind Connect - Página inicial"
         >
-          <span className="text-2xl font-bold tracking-tight text-violet-700">
+          <span className="whitespace-nowrap text-xl font-bold tracking-tight text-violet-700 sm:text-2xl">
             Mind<span className="text-teal-500">Connect</span>
           </span>
         </NavLink>
 
-        <div className="hidden items-center gap-8 md:flex">
+        <div className="hidden items-center gap-5 lg:flex xl:gap-8">
           {navigation.map((item) => (
             <NavLink
               key={item.path}
@@ -56,11 +55,10 @@ function Navbar() {
           ))}
         </div>
 
-        <div className="hidden items-center gap-3 md:flex">
-
+        <div className="hidden items-center gap-2 lg:flex xl:gap-3">
           <NavLink
             to="/login"
-            className="inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-violet-700 transition-colors hover:bg-violet-50"
+            className="inline-flex items-center gap-2 rounded-xl px-3 py-3 text-sm font-semibold text-violet-700 transition-colors hover:bg-violet-50 xl:px-4"
           >
             <LogIn size={17} />
             Entrar
@@ -68,30 +66,31 @@ function Navbar() {
 
           <NavLink
             to="/cadastro"
-            className="inline-flex items-center gap-2 rounded-xl bg-violet-700 px-5 py-3 text-sm font-semibold text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-violet-800"
+            className="inline-flex items-center gap-2 rounded-xl bg-violet-700 px-4 py-3 text-sm font-semibold text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-violet-800 xl:px-5"
           >
             <UserPlus size={17} />
             Criar conta
           </NavLink>
-
         </div>
 
         <button
           type="button"
           onClick={() => setMenuOpen((current) => !current)}
-          className="rounded-xl p-2 text-violet-700 transition-colors hover:bg-violet-50 md:hidden"
+          className="rounded-xl p-2 text-violet-700 transition-colors hover:bg-violet-50 lg:hidden"
           aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}
           aria-expanded={menuOpen}
+          aria-controls="menu-mobile"
         >
           {menuOpen ? <X size={25} /> : <Menu size={25} />}
         </button>
-
       </nav>
 
       {menuOpen && (
-        <div className="border-t border-violet-100 bg-white px-5 py-4 shadow-lg md:hidden">
+        <div
+          id="menu-mobile"
+          className="border-t border-violet-100 bg-white px-4 py-4 shadow-lg sm:px-5 lg:hidden"
+        >
           <div className="mx-auto flex max-w-7xl flex-col gap-1">
-
             {navigation.map((item) => (
               <NavLink
                 key={item.path}
@@ -126,7 +125,6 @@ function Navbar() {
               <UserPlus size={17} />
               Criar conta
             </NavLink>
-
           </div>
         </div>
       )}

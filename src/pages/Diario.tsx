@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 
 import { useAuth } from "../context/AuthContext";
+import { ApiError } from "../services/api";
 
 import {
   cadastrarRegistroBemEstar,
@@ -42,19 +43,15 @@ function obterDataAtual(): string {
   const ano = hoje.getFullYear();
   const mes = String(hoje.getMonth() + 1).padStart(2, "0");
   const dia = String(hoje.getDate()).padStart(2, "0");
-
   return `${ano}-${mes}-${dia}`;
 }
 
 function formatarData(data: string): string {
-  return new Date(`${data}T12:00:00`).toLocaleDateString(
-    "pt-BR",
-    {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    }
-  );
+  return new Date(`${data}T12:00:00`).toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
 }
 
 function Diario() {
@@ -84,13 +81,14 @@ function Diario() {
     try {
       const dados = await listarRegistrosBemEstar(token);
 
-      const ordenados = [...dados].sort((a, b) =>
-        b.dataRegistro.localeCompare(a.dataRegistro)
+      setRegistros(
+        [...dados].sort((a, b) =>
+          b.dataRegistro.localeCompare(a.dataRegistro)
+        )
       );
-
-      setRegistros(ordenados);
     } catch (error) {
       console.error("Erro ao carregar diário:", error);
+
       setErro(
         error instanceof Error
           ? error.message
@@ -114,9 +112,7 @@ function Diario() {
     setErro("");
   }
 
-  async function registrarBemEstar(
-    event: FormEvent<HTMLFormElement>
-  ) {
+  async function registrarBemEstar(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!user || !token) {
@@ -143,6 +139,13 @@ function Diario() {
       return;
     }
 
+    if (registros.some((registro) => registro.dataRegistro === data)) {
+      setErro(
+        "Você já possui um registro nesta data. Escolha outro dia para registrar seu bem-estar."
+      );
+      return;
+    }
+
     setSalvando(true);
     setErro("");
 
@@ -165,11 +168,21 @@ function Diario() {
     } catch (error) {
       console.error("Erro ao salvar registro:", error);
 
-      setErro(
-        error instanceof Error
-          ? error.message
-          : "Não foi possível salvar seu registro."
-      );
+      if (error instanceof ApiError && error.status === 409) {
+        setErro(
+          "Você já possui um registro de bem-estar nesta data. Escolha outro dia para continuar."
+        );
+      } else if (error instanceof ApiError && error.status === 401) {
+        setErro(
+          "Sua sessão expirou. Entre novamente para salvar seu registro."
+        );
+      } else {
+        setErro(
+          error instanceof Error
+            ? error.message
+            : "Não foi possível salvar seu registro."
+        );
+      }
     } finally {
       setSalvando(false);
     }
@@ -181,11 +194,13 @@ function Diario() {
       return;
     }
 
-    const confirmar = window.confirm(
-      "Tem certeza de que deseja excluir este registro?"
-    );
-
-    if (!confirmar) return;
+    if (
+      !window.confirm(
+        "Tem certeza de que deseja excluir este registro?"
+      )
+    ) {
+      return;
+    }
 
     setExcluindoId(id);
     setErro("");
@@ -243,8 +258,7 @@ function Diario() {
 
   return (
     <main className="min-h-screen bg-slate-50">
-      {/* Cabeçalho */}
-      <section className="bg-gradient-to-br from-violet-700 via-violet-600 to-purple-500 px-6 py-16 text-white sm:py-20">
+      <section className="bg-gradient-to-br from-violet-700 via-violet-600 to-purple-500 px-4 py-12 text-white sm:px-6 sm:py-20">
         <div className="mx-auto max-w-7xl">
           <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium">
             <BookHeart size={17} />
@@ -263,9 +277,7 @@ function Diario() {
         </div>
       </section>
 
-      {/* Conteúdo principal */}
-      <section className="mx-auto max-w-7xl px-6 py-12 lg:px-8">
-        {/* Apresentação */}
+      <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
         <div className="mb-10 grid gap-6 md:grid-cols-2">
           <div className="rounded-2xl border border-violet-100 bg-white p-6 shadow-sm">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-50 text-violet-700">
@@ -298,15 +310,11 @@ function Diario() {
           </div>
         </div>
 
-        {/* Histórico */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+        <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="flex items-center gap-2">
-                <CalendarDays
-                  size={21}
-                  className="text-violet-600"
-                />
+                <CalendarDays size={21} className="text-violet-600" />
 
                 <h2 className="text-xl font-bold text-slate-900">
                   Histórico de registros
@@ -331,7 +339,6 @@ function Diario() {
             </button>
           </div>
 
-          {/* Formulário */}
           {mostrarFormulario && (
             <form
               onSubmit={registrarBemEstar}
@@ -361,7 +368,6 @@ function Diario() {
                 </button>
               </div>
 
-              {/* Humor */}
               <div>
                 <label className="mb-3 block text-sm font-semibold text-slate-800">
                   Como você está se sentindo?
@@ -379,15 +385,14 @@ function Diario() {
                           setHumor(opcao.valor);
                           setErro("");
                         }}
+                        aria-pressed={selecionado}
                         className={`flex flex-col items-center gap-2 rounded-xl border p-4 transition ${
                           selecionado
                             ? "border-violet-500 bg-violet-100 text-violet-800"
                             : "border-slate-200 bg-white text-slate-600 hover:border-violet-300"
                         }`}
                       >
-                        <span className="text-3xl">
-                          {opcao.emoji}
-                        </span>
+                        <span className="text-3xl">{opcao.emoji}</span>
 
                         <span className="text-xs font-semibold">
                           {opcao.valor}
@@ -398,7 +403,6 @@ function Diario() {
                 </div>
               </div>
 
-              {/* Data */}
               <div className="mt-6">
                 <label
                   htmlFor="dataRegistro"
@@ -418,7 +422,6 @@ function Diario() {
                 />
               </div>
 
-              {/* Descrição */}
               <div className="mt-6">
                 <label
                   htmlFor="descricaoRegistro"
@@ -480,13 +483,13 @@ function Diario() {
             </form>
           )}
 
-          {/* Mensagem de erro */}
           {erro && !mostrarFormulario && (
             <div
               role="alert"
               className="mt-6 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700"
             >
               {erro}
+
               <button
                 type="button"
                 onClick={() => void carregarRegistros()}
@@ -497,7 +500,6 @@ function Diario() {
             </div>
           )}
 
-          {/* Lista de registros */}
           {carregando ? (
             <div className="mt-8 rounded-2xl bg-slate-50 px-5 py-16 text-center">
               <p className="text-sm text-slate-500">
@@ -572,7 +574,6 @@ function Diario() {
           )}
         </div>
 
-        {/* Orientação */}
         <div className="mt-8 rounded-2xl border border-violet-100 bg-violet-50 p-6">
           <h3 className="font-bold text-violet-900">
             Um lembrete importante
