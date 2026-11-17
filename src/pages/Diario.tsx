@@ -1,11 +1,10 @@
-import { useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 
 import {
   BookHeart,
   CalendarDays,
   Heart,
   LockKeyhole,
-  Sparkles,
   Smile,
   Meh,
   Frown,
@@ -14,25 +13,28 @@ import {
   X,
 } from "lucide-react";
 
-type Humor = "Muito bem" | "Bem" | "Neutro" | "Mal" | "Muito mal";
+import { useAuth } from "../context/AuthContext";
 
-interface RegistroDiario {
-  id: number;
-  humor: Humor;
-  data: string;
-  descricao: string;
-}
+import {
+  cadastrarRegistroBemEstar,
+  excluirRegistroBemEstar,
+  listarRegistrosBemEstar,
+  type RegistroBemEstar,
+} from "../services/registroBemEstarService";
+
+type Humor = "Muito bem" | "Bem" | "Neutro" | "Mal" | "Muito mal";
 
 const opcoesHumor: {
   valor: Humor;
+  nivel: number;
   emoji: string;
   icone: typeof Smile;
 }[] = [
-  { valor: "Muito bem", emoji: "😁", icone: Smile },
-  { valor: "Bem", emoji: "🙂", icone: Smile },
-  { valor: "Neutro", emoji: "😐", icone: Meh },
-  { valor: "Mal", emoji: "😟", icone: Frown },
-  { valor: "Muito mal", emoji: "😢", icone: Frown },
+  { valor: "Muito bem", nivel: 5, emoji: "😁", icone: Smile },
+  { valor: "Bem", nivel: 4, emoji: "🙂", icone: Smile },
+  { valor: "Neutro", nivel: 3, emoji: "😐", icone: Meh },
+  { valor: "Mal", nivel: 2, emoji: "😟", icone: Frown },
+  { valor: "Muito mal", nivel: 1, emoji: "😢", icone: Frown },
 ];
 
 function obterDataAtual(): string {
@@ -56,12 +58,54 @@ function formatarData(data: string): string {
 }
 
 function Diario() {
+  const { user, token, isLoading: authLoading } = useAuth();
+
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [humor, setHumor] = useState<Humor | "">("");
   const [data, setData] = useState(obterDataAtual());
   const [descricao, setDescricao] = useState("");
-  const [registros, setRegistros] = useState<RegistroDiario[]>([]);
+
+  const [registros, setRegistros] = useState<RegistroBemEstar[]>([]);
   const [erro, setErro] = useState("");
+  const [carregando, setCarregando] = useState(true);
+  const [salvando, setSalvando] = useState(false);
+  const [excluindoId, setExcluindoId] = useState<number | null>(null);
+
+  const carregarRegistros = useCallback(async () => {
+    if (!token) {
+      setRegistros([]);
+      setCarregando(false);
+      return;
+    }
+
+    setCarregando(true);
+    setErro("");
+
+    try {
+      const dados = await listarRegistrosBemEstar(token);
+
+      const ordenados = [...dados].sort((a, b) =>
+        b.dataRegistro.localeCompare(a.dataRegistro)
+      );
+
+      setRegistros(ordenados);
+    } catch (error) {
+      console.error("Erro ao carregar diário:", error);
+      setErro(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível carregar seus registros."
+      );
+    } finally {
+      setCarregando(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    if (!authLoading) {
+      void carregarRegistros();
+    }
+  }, [authLoading, carregarRegistros]);
 
   function limparFormulario() {
     setHumor("");
@@ -70,8 +114,15 @@ function Diario() {
     setErro("");
   }
 
-  function registrarBemEstar(event: FormEvent<HTMLFormElement>) {
+  async function registrarBemEstar(
+    event: FormEvent<HTMLFormElement>
+  ) {
     event.preventDefault();
+
+    if (!user || !token) {
+      setErro("Você precisa estar autenticado para salvar um registro.");
+      return;
+    }
 
     if (!humor) {
       setErro("Selecione como você está se sentindo.");
@@ -83,26 +134,110 @@ function Diario() {
       return;
     }
 
-    const novoRegistro: RegistroDiario = {
-      id: Date.now(),
-      humor,
-      data,
-      descricao: descricao.trim(),
-    };
-
-    setRegistros((atuais) =>
-      [novoRegistro, ...atuais].sort((a, b) =>
-        b.data.localeCompare(a.data)
-      )
+    const opcaoSelecionada = opcoesHumor.find(
+      (opcao) => opcao.valor === humor
     );
 
-    limparFormulario();
-    setMostrarFormulario(false);
+    if (!opcaoSelecionada) {
+      setErro("Selecione uma opção de humor válida.");
+      return;
+    }
+
+    setSalvando(true);
+    setErro("");
+
+    try {
+      await cadastrarRegistroBemEstar(
+        {
+          idUsuario: user.id,
+          dataRegistro: data,
+          humor,
+          nivelHumor: opcaoSelecionada.nivel,
+          observacoes: descricao.trim(),
+        },
+        token
+      );
+
+      await carregarRegistros();
+
+      limparFormulario();
+      setMostrarFormulario(false);
+    } catch (error) {
+      console.error("Erro ao salvar registro:", error);
+
+      setErro(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível salvar seu registro."
+      );
+    } finally {
+      setSalvando(false);
+    }
   }
 
-  function removerRegistro(id: number) {
-    setRegistros((atuais) =>
-      atuais.filter((registro) => registro.id !== id)
+  async function removerRegistro(id: number) {
+    if (!token) {
+      setErro("Sua sessão expirou. Entre novamente na plataforma.");
+      return;
+    }
+
+    const confirmar = window.confirm(
+      "Tem certeza de que deseja excluir este registro?"
+    );
+
+    if (!confirmar) return;
+
+    setExcluindoId(id);
+    setErro("");
+
+    try {
+      await excluirRegistroBemEstar(id, token);
+
+      setRegistros((atuais) =>
+        atuais.filter((registro) => registro.idRegistro !== id)
+      );
+    } catch (error) {
+      console.error("Erro ao excluir registro:", error);
+
+      setErro(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível excluir o registro."
+      );
+    } finally {
+      setExcluindoId(null);
+    }
+  }
+
+  function obterOpcaoHumor(valor: string) {
+    return opcoesHumor.find((opcao) => opcao.valor === valor);
+  }
+
+  if (authLoading) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-50">
+        <p className="text-sm font-medium text-slate-600">
+          Verificando sua sessão...
+        </p>
+      </main>
+    );
+  }
+
+  if (!user || !token) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-50 px-6">
+        <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+          <LockKeyhole className="mx-auto text-violet-600" size={36} />
+
+          <h1 className="mt-4 text-xl font-bold text-slate-900">
+            Acesso restrito
+          </h1>
+
+          <p className="mt-2 text-sm text-slate-600">
+            Entre na sua conta para acessar seu diário de bem-estar.
+          </p>
+        </div>
+      </main>
     );
   }
 
@@ -323,43 +458,66 @@ function Diario() {
               <div className="mt-6 flex flex-col justify-end gap-3 sm:flex-row">
                 <button
                   type="button"
+                  disabled={salvando}
                   onClick={() => {
                     setMostrarFormulario(false);
                     limparFormulario();
                   }}
-                  className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+                  className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Cancelar
                 </button>
 
                 <button
                   type="submit"
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-violet-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-violet-700"
+                  disabled={salvando}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-violet-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <BookHeart size={17} />
-                  Salvar registro
+                  {salvando ? "Salvando..." : "Salvar registro"}
                 </button>
               </div>
             </form>
           )}
 
+          {/* Mensagem de erro */}
+          {erro && !mostrarFormulario && (
+            <div
+              role="alert"
+              className="mt-6 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700"
+            >
+              {erro}
+              <button
+                type="button"
+                onClick={() => void carregarRegistros()}
+                className="ml-2 font-semibold underline"
+              >
+                Tentar novamente
+              </button>
+            </div>
+          )}
+
           {/* Lista de registros */}
-          {registros.length > 0 ? (
+          {carregando ? (
+            <div className="mt-8 rounded-2xl bg-slate-50 px-5 py-16 text-center">
+              <p className="text-sm text-slate-500">
+                Carregando seus registros...
+              </p>
+            </div>
+          ) : registros.length > 0 ? (
             <div className="mt-8 space-y-4">
               {registros.map((registro) => {
-                const opcao = opcoesHumor.find(
-                  (item) => item.valor === registro.humor
-                );
+                const opcao = obterOpcaoHumor(registro.humor);
 
                 return (
                   <article
-                    key={registro.id}
+                    key={registro.idRegistro}
                     className="rounded-2xl border border-slate-200 bg-white p-5 transition hover:border-violet-200"
                   >
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                       <div className="flex items-start gap-4">
                         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-2xl">
-                          {opcao?.emoji}
+                          {opcao?.emoji ?? "📝"}
                         </div>
 
                         <div>
@@ -368,24 +526,29 @@ function Diario() {
                           </h3>
 
                           <p className="mt-1 text-xs text-slate-500">
-                            {formatarData(registro.data)}
+                            {formatarData(registro.dataRegistro)}
                           </p>
                         </div>
                       </div>
 
                       <button
                         type="button"
-                        onClick={() => removerRegistro(registro.id)}
+                        onClick={() =>
+                          void removerRegistro(registro.idRegistro)
+                        }
+                        disabled={excluindoId === registro.idRegistro}
                         aria-label="Excluir registro"
-                        className="self-end rounded-lg p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-600 sm:self-start"
+                        className="self-end rounded-lg p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50 sm:self-start"
                       >
                         <Trash2 size={18} />
                       </button>
                     </div>
 
-                    <p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-slate-600">
-                      {registro.descricao}
-                    </p>
+                    {registro.observacoes && (
+                      <p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-slate-600">
+                        {registro.observacoes}
+                      </p>
+                    )}
                   </article>
                 );
               })}
