@@ -31,6 +31,8 @@ interface AuthContextData {
 
 const AUTH_STORAGE_KEY = "mindconnect_token";
 const USER_ID_STORAGE_KEY = "mindconnect_user_id";
+const ADMIN_STORAGE_KEY = "mindconnect_administrador";
+const ACCESS_LEVEL_STORAGE_KEY = "mindconnect_nivel_acesso";
 
 const AuthContext = createContext<AuthContextData | undefined>(
   undefined
@@ -66,9 +68,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       );
 
       if (!idUsuario || !Number.isInteger(idUsuario)) {
-        localStorage.removeItem(AUTH_STORAGE_KEY);
-        localStorage.removeItem(USER_ID_STORAGE_KEY);
-
+        limparSessao();
         setUser(null);
         setToken(null);
         setIsLoading(false);
@@ -85,15 +85,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
         if (!ativo) return;
 
-        setUser(usuario);
+        const usuarioRestaurado: AuthUser = {
+          ...usuario,
+          administrador:
+            localStorage.getItem(ADMIN_STORAGE_KEY) === "true",
+          nivelAcesso:
+            localStorage.getItem(ACCESS_LEVEL_STORAGE_KEY) ?? "",
+        };
+
+        setUser(usuarioRestaurado);
       } catch (error) {
         if (!ativo) return;
 
         console.error("Erro ao restaurar sessão:", error);
 
-        localStorage.removeItem(AUTH_STORAGE_KEY);
-        localStorage.removeItem(USER_ID_STORAGE_KEY);
-
+        limparSessao();
         setToken(null);
         setUser(null);
       } finally {
@@ -109,6 +115,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
       ativo = false;
     };
   }, [token]);
+
+  function limparSessao() {
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+    localStorage.removeItem(USER_ID_STORAGE_KEY);
+    localStorage.removeItem(ADMIN_STORAGE_KEY);
+    localStorage.removeItem(ACCESS_LEVEL_STORAGE_KEY);
+  }
 
   async function login(
     email: string,
@@ -132,6 +145,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
       USER_ID_STORAGE_KEY,
       String(sessao.idUsuario)
     );
+    localStorage.setItem(
+      ADMIN_STORAGE_KEY,
+      String(sessao.administrador)
+    );
+    localStorage.setItem(
+      ACCESS_LEVEL_STORAGE_KEY,
+      sessao.nivelAcesso ?? ""
+    );
 
     setUser(usuario);
     setToken(sessao.token);
@@ -150,14 +171,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     await cadastrarUsuario(dadosCadastro);
 
-    // O cadastro não retorna token.
-    // Por isso, realizamos o login após criar a conta.
     await login(dadosCadastro.email, dadosCadastro.senha);
   }
 
   async function logout(): Promise<void> {
-    localStorage.removeItem(AUTH_STORAGE_KEY);
-    localStorage.removeItem(USER_ID_STORAGE_KEY);
+    limparSessao();
 
     setToken(null);
     setUser(null);

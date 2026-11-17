@@ -13,6 +13,7 @@ import Conteudos from "./pages/Conteudos";
 import Diario from "./pages/Diario";
 import Cadastro from "./pages/Cadastro";
 import Login from "./pages/Login";
+import Admin from "./pages/Admin";
 
 function App() {
   return (
@@ -33,6 +34,8 @@ function App() {
 
           <Route path="/cadastro" element={<Cadastro />} />
           <Route path="/login" element={<Login />} />
+
+          <Route path="/admin" element={<Admin />} />
         </Route>
       </Routes>
     </BrowserRouter>
