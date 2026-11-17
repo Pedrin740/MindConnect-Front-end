@@ -9,6 +9,8 @@ const navigation = [
   { name: "Conteúdos", path: "/conteudos" },
   { name: "Diário", path: "/diario" },
   { name: "Sobre", path: "/sobre" },
+  { name: "FAQ", path: "/faq" },
+  { name: "Contato", path: "/contato" },
   { name: "Integrantes", path: "/integrantes" },
 ];
 
@@ -17,8 +19,12 @@ function Navbar() {
 
   const { user, isAuthenticated, logout } = useAuth();
 
+  const visibleNavigation = user?.administrador
+    ? [...navigation, { name: "Administração", path: "/admin" }]
+    : navigation;
+
   const linkClasses = ({ isActive }: { isActive: boolean }) =>
-    `relative text-sm font-medium transition-colors duration-200 ${
+    `relative whitespace-nowrap text-sm font-medium transition-colors duration-200 ${
       isActive
         ? "text-violet-700"
         : "text-slate-600 hover:text-violet-700"
@@ -31,11 +37,11 @@ function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-violet-100/70 bg-white/85 backdrop-blur-xl">
-      <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-5 lg:px-8">
+      <nav className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-5 lg:px-8">
         <NavLink
           to="/"
           onClick={() => setMenuOpen(false)}
-          className="flex min-w-0 items-center gap-2"
+          className="flex shrink-0 items-center gap-2"
           aria-label="Mind Connect - Página inicial"
         >
           <span className="whitespace-nowrap text-xl font-bold tracking-tight text-violet-700 sm:text-2xl">
@@ -43,8 +49,8 @@ function Navbar() {
           </span>
         </NavLink>
 
-        <div className="hidden items-center gap-5 lg:flex xl:gap-8">
-          {navigation.map((item) => (
+        <div className="hidden items-center gap-3 lg:flex xl:gap-5">
+          {visibleNavigation.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
@@ -63,16 +69,16 @@ function Navbar() {
           ))}
         </div>
 
-        <div className="hidden min-w-[220px] items-center justify-end gap-2 lg:flex xl:gap-3">
+        <div className="hidden shrink-0 items-center justify-end gap-2 lg:flex xl:gap-3">
           {isAuthenticated && user ? (
             <>
-              <div className="flex items-center gap-2 rounded-xl px-3 py-3 text-sm font-semibold text-slate-700">
+              <div className="flex max-w-36 items-center gap-2 rounded-xl px-2 py-3 text-sm font-semibold text-slate-700">
                 <UserRound
                   size={18}
-                  className="text-violet-700"
+                  className="shrink-0 text-violet-700"
                 />
 
-                <span className="max-w-36 truncate">
+                <span className="truncate">
                   {user.nome}
                 </span>
               </div>
@@ -80,7 +86,7 @@ function Navbar() {
               <button
                 type="button"
                 onClick={() => void handleLogout()}
-                className="inline-flex items-center gap-2 rounded-xl border border-violet-200 px-4 py-3 text-sm font-semibold text-violet-700 transition-colors hover:bg-violet-50"
+                className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-violet-200 px-4 py-3 text-sm font-semibold text-violet-700 transition-colors hover:bg-violet-50"
               >
                 <LogOut size={17} />
                 Sair
@@ -90,7 +96,7 @@ function Navbar() {
             <>
               <NavLink
                 to="/login"
-                className="inline-flex items-center gap-2 rounded-xl px-3 py-3 text-sm font-semibold text-violet-700 transition-colors hover:bg-violet-50 xl:px-4"
+                className="inline-flex shrink-0 items-center gap-2 rounded-xl px-3 py-3 text-sm font-semibold text-violet-700 transition-colors hover:bg-violet-50 xl:px-4"
               >
                 <LogIn size={17} />
                 Entrar
@@ -98,7 +104,7 @@ function Navbar() {
 
               <NavLink
                 to="/cadastro"
-                className="inline-flex items-center gap-2 rounded-xl bg-violet-700 px-4 py-3 text-sm font-semibold text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-violet-800 xl:px-5"
+                className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-violet-700 px-4 py-3 text-sm font-semibold text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-violet-800 xl:px-5"
               >
                 <UserPlus size={17} />
                 Criar conta
@@ -110,7 +116,7 @@ function Navbar() {
         <button
           type="button"
           onClick={() => setMenuOpen((current) => !current)}
-          className="rounded-xl p-2 text-violet-700 transition-colors hover:bg-violet-50 lg:hidden"
+          className="shrink-0 rounded-xl p-2 text-violet-700 transition-colors hover:bg-violet-50 lg:hidden"
           aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}
           aria-expanded={menuOpen}
           aria-controls="menu-mobile"
@@ -125,7 +131,7 @@ function Navbar() {
           className="border-t border-violet-100 bg-white px-4 py-4 shadow-lg sm:px-5 lg:hidden"
         >
           <div className="mx-auto flex max-w-7xl flex-col gap-1">
-            {navigation.map((item) => (
+            {visibleNavigation.map((item) => (
               <NavLink
                 key={item.path}
                 to={item.path}
