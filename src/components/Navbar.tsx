@@ -15,7 +15,7 @@ const navigation = [
 function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const { user, isAuthenticated, isLoading, logout } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
 
   const linkClasses = ({ isActive }: { isActive: boolean }) =>
     `relative text-sm font-medium transition-colors duration-200 ${
@@ -53,6 +53,7 @@ function Navbar() {
               {({ isActive }) => (
                 <span className="relative py-2">
                   {item.name}
+
                   {isActive && (
                     <span className="absolute -bottom-1 left-0 h-0.5 w-full rounded-full bg-violet-600" />
                   )}
@@ -62,13 +63,17 @@ function Navbar() {
           ))}
         </div>
 
-        <div className="hidden items-center gap-2 lg:flex xl:gap-3">
-          {!isLoading && isAuthenticated ? (
+        <div className="hidden min-w-[220px] items-center justify-end gap-2 lg:flex xl:gap-3">
+          {isAuthenticated && user ? (
             <>
               <div className="flex items-center gap-2 rounded-xl px-3 py-3 text-sm font-semibold text-slate-700">
-                <UserRound size={18} className="text-violet-700" />
+                <UserRound
+                  size={18}
+                  className="text-violet-700"
+                />
+
                 <span className="max-w-36 truncate">
-                  {user?.nome}
+                  {user.nome}
                 </span>
               </div>
 
@@ -81,7 +86,7 @@ function Navbar() {
                 Sair
               </button>
             </>
-          ) : !isLoading ? (
+          ) : (
             <>
               <NavLink
                 to="/login"
@@ -99,7 +104,7 @@ function Navbar() {
                 Criar conta
               </NavLink>
             </>
-          ) : null}
+          )}
         </div>
 
         <button
@@ -137,12 +142,13 @@ function Navbar() {
               </NavLink>
             ))}
 
-            {!isLoading && isAuthenticated ? (
+            {isAuthenticated && user ? (
               <>
                 <div className="mt-2 flex items-center gap-2 rounded-xl bg-violet-50 px-4 py-3 text-sm font-semibold text-violet-800">
                   <UserRound size={18} />
+
                   <span className="truncate">
-                    {user?.nome}
+                    {user.nome}
                   </span>
                 </div>
 
@@ -155,7 +161,7 @@ function Navbar() {
                   Sair
                 </button>
               </>
-            ) : !isLoading ? (
+            ) : (
               <>
                 <NavLink
                   to="/login"
@@ -175,7 +181,7 @@ function Navbar() {
                   Criar conta
                 </NavLink>
               </>
-            ) : null}
+            )}
           </div>
         </div>
       )}

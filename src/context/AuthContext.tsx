@@ -6,15 +6,57 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+const USER_CACHE_KEY = "mindconnect_usuario";
+
+function obterUsuarioSalvo(): AuthUser | null {
+  try {
+    const token = localStorage.getItem(AUTH_STORAGE_KEY);
+    const usuarioSalvo = localStorage.getItem(USER_CACHE_KEY);
+
+    if (!token || !usuarioSalvo) {
+      return null;
+    }
+
+    const usuario = JSON.parse(usuarioSalvo) as AuthUser;
+
+    if (
+      !usuario ||
+      !Number.isInteger(usuario.id) ||
+      !usuario.nome ||
+      !usuario.email
+    ) {
+      return null;
+    }
+
+    return usuario;
+  } catch {
+    return null;
+  }
+}
+
+function salvarUsuario(usuario: AuthUser): void {
+  localStorage.setItem(
+    USER_CACHE_KEY,
+    JSON.stringify(usuario)
+  );
+}
+
 function limparSessao(): void {
   localStorage.removeItem(AUTH_STORAGE_KEY);
   localStorage.removeItem(USER_ID_STORAGE_KEY);
   localStorage.removeItem(ADMIN_STORAGE_KEY);
   localStorage.removeItem(ACCESS_LEVEL_STORAGE_KEY);
+  localStorage.removeItem(USER_CACHE_KEY);
+}
+
+interface AuthProviderProps {
+  children: ReactNode;
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(
+    obterUsuarioSalvo
+  );
 
   const [token, setToken] = useState<string | null>(() =>
     localStorage.getItem(AUTH_STORAGE_KEY)
@@ -33,6 +75,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setUser(null);
           setIsLoading(false);
         }
+
         return;
       }
 
@@ -48,11 +91,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setToken(null);
           setIsLoading(false);
         }
-        return;
-      }
 
-      if (ativo) {
-        setIsLoading(true);
+        return;
       }
 
       try {
@@ -71,6 +111,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             localStorage.getItem(ACCESS_LEVEL_STORAGE_KEY) ?? "",
         };
 
+        salvarUsuario(usuarioRestaurado);
         setUser(usuarioRestaurado);
       } catch (error) {
         if (!ativo) return;
@@ -112,21 +153,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
 
     localStorage.setItem(AUTH_STORAGE_KEY, sessao.token);
+
     localStorage.setItem(
       USER_ID_STORAGE_KEY,
       String(sessao.idUsuario)
     );
+
     localStorage.setItem(
       ADMIN_STORAGE_KEY,
       String(sessao.administrador)
     );
+
     localStorage.setItem(
       ACCESS_LEVEL_STORAGE_KEY,
       sessao.nivelAcesso ?? ""
     );
 
+    salvarUsuario(usuario);
+
     setUser(usuario);
     setToken(sessao.token);
+    setIsLoading(false);
   }
 
   async function register(
@@ -142,7 +189,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     await cadastrarUsuario(dadosCadastro);
 
-    await login(dadosCadastro.email, dadosCadastro.senha);
+    await login(
+      dadosCadastro.email,
+      dadosCadastro.senha
+    );
   }
 
   async function logout(): Promise<void> {
