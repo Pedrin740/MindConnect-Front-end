@@ -49,42 +49,81 @@ function Diario() {
   const [salvando, setSalvando] = useState(false);
   const [excluindoId, setExcluindoId] = useState<number | null>(null);
 
-  const carregarRegistros = useCallback(async () => {
-    if (!token) {
-      setRegistros([]);
-      setCarregando(false);
-      return;
-    }
+  const carregarRegistros = useCallback(
+    async (mostrarCarregamento = true) => {
+      if (!token) return;
 
-    setCarregando(true);
-    setErro("");
+      if (mostrarCarregamento) {
+        setCarregando(true);
+      }
 
-    try {
-      const dados = await listarRegistrosBemEstar(token);
+      try {
+        const dados = await listarRegistrosBemEstar(token);
 
-      setRegistros(
-        [...dados].sort((a, b) =>
-          b.dataRegistro.localeCompare(a.dataRegistro)
-        )
-      );
-    } catch (error) {
-      console.error("Erro ao carregar diário:", error);
+        setErro("");
 
-      setErro(
-        error instanceof Error
-          ? error.message
-          : "Não foi possível carregar seus registros."
-      );
-    } finally {
-      setCarregando(false);
-    }
-  }, [token]);
+        setRegistros(
+          [...dados].sort((a, b) =>
+            b.dataRegistro.localeCompare(a.dataRegistro)
+          )
+        );
+      } catch (error) {
+        console.error("Erro ao carregar diário:", error);
+
+        setErro(
+          error instanceof Error
+            ? error.message
+            : "Não foi possível carregar seus registros."
+        );
+      } finally {
+        setCarregando(false);
+      }
+    },
+    [token]
+  );
 
   useEffect(() => {
-    if (!authLoading) {
-      void carregarRegistros();
+    if (authLoading || !token) return;
+
+    let ativo = true;
+    const tokenAutenticacao = token;
+
+    async function carregarRegistrosIniciais() {
+      try {
+        const dados = await listarRegistrosBemEstar(
+          tokenAutenticacao
+        );
+
+        if (!ativo) return;
+
+        setErro("");
+        setRegistros(
+          [...dados].sort((a, b) =>
+            b.dataRegistro.localeCompare(a.dataRegistro)
+          )
+        );
+      } catch (error) {
+        if (!ativo) return;
+
+        console.error("Erro ao carregar diário:", error);
+        setErro(
+          error instanceof Error
+            ? error.message
+            : "Não foi possível carregar seus registros."
+        );
+      } finally {
+        if (ativo) {
+          setCarregando(false);
+        }
+      }
     }
-  }, [authLoading, carregarRegistros]);
+
+    void carregarRegistrosIniciais();
+
+    return () => {
+      ativo = false;
+    };
+  }, [authLoading, token]);
 
   function limparFormulario() {
     setHumor("");
@@ -189,8 +228,10 @@ function Diario() {
     try {
       await excluirRegistroBemEstar(id, token);
 
-      setRegistros((atuais) =>
-        atuais.filter((registro) => registro.idRegistro !== id)
+      setRegistros((registrosAtuais) =>
+        registrosAtuais.filter(
+          (registro) => registro.idRegistro !== id
+        )
       );
     } catch (error) {
       console.error("Erro ao excluir registro:", error);
@@ -211,9 +252,9 @@ function Diario() {
 
   if (authLoading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-50">
-        <p className="text-sm font-medium text-slate-600">
-          Verificando sua sessão...
+      <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+        <p className="text-sm text-slate-500">
+          Verificando autenticação...
         </p>
       </main>
     );
@@ -221,11 +262,14 @@ function Diario() {
 
   if (!user || !token) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-50 px-6">
-        <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-          <LockKeyhole className="mx-auto text-violet-600" size={36} />
+      <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+        <div className="max-w-md rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+          <LockKeyhole
+            size={42}
+            className="mx-auto text-violet-600"
+          />
 
-          <h1 className="mt-4 text-xl font-bold text-slate-900">
+          <h1 className="mt-5 text-2xl font-bold text-slate-900">
             Acesso restrito
           </h1>
 

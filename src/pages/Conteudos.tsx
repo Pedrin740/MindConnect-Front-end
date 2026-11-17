@@ -35,16 +35,20 @@ function Conteudos() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
 
-  async function carregarDadosIniciais() {
-    try {
+  async function carregarDadosIniciais(
+    mostrarCarregamento = true
+  ) {
+    if (mostrarCarregamento) {
       setCarregando(true);
-      setErro("");
+    }
 
+    try {
       const [listaConteudos, listaCategorias] = await Promise.all([
         buscarConteudos({ status: "ATIVO" }),
         buscarCategoriasConteudo(),
       ]);
 
+      setErro("");
       setConteudos(listaConteudos);
       setCategorias(listaCategorias);
     } catch (error) {
@@ -59,7 +63,40 @@ function Conteudos() {
   }
 
   useEffect(() => {
-    carregarDadosIniciais();
+    let ativo = true;
+
+    async function carregarDadosIniciais() {
+      try {
+        const [listaConteudos, listaCategorias] = await Promise.all([
+          buscarConteudos({ status: "ATIVO" }),
+          buscarCategoriasConteudo(),
+        ]);
+
+        if (!ativo) return;
+
+        setErro("");
+        setConteudos(listaConteudos);
+        setCategorias(listaCategorias);
+      } catch (error) {
+        if (!ativo) return;
+
+        setErro(
+          error instanceof Error
+            ? error.message
+            : "Não foi possível carregar os conteúdos."
+        );
+      } finally {
+        if (ativo) {
+          setCarregando(false);
+        }
+      }
+    }
+
+    void carregarDadosIniciais();
+
+    return () => {
+      ativo = false;
+    };
   }, []);
 
   async function handleSearch(event: FormEvent<HTMLFormElement>) {
@@ -140,43 +177,44 @@ function Conteudos() {
           className="relative -mt-20 mb-12 rounded-2xl border border-slate-100 bg-white p-5 shadow-xl shadow-slate-200/60 sm:p-7"
         >
           <div className="mb-5">
-            <h2 className="text-xl font-bold text-slate-900">
-              Encontre um conteúdo
+            <h2 className="text-lg font-bold text-slate-900">
+              Encontre conteúdos
             </h2>
 
             <p className="mt-1 text-sm text-slate-500">
-              Pesquise pelo título, assunto ou selecione uma categoria.
+              Pesquise por assunto ou selecione uma categoria.
             </p>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-[1fr_1fr_auto]">
-            {/* Busca */}
+          <div className="grid gap-4 md:grid-cols-[1fr_1fr_auto]">
             <div>
               <label
-                htmlFor="busca-conteudo"
+                htmlFor="buscaConteudo"
                 className="mb-2 block text-sm font-semibold text-slate-700"
               >
-                Pesquisar conteúdo
+                Buscar conteúdo
               </label>
 
-              <div className="flex h-12 items-center gap-3 rounded-xl border border-slate-200 px-4 transition-colors focus-within:border-violet-500 focus-within:ring-2 focus-within:ring-violet-100">
-                <Search size={19} className="shrink-0 text-violet-500" />
+              <div className="relative">
+                <Search
+                  size={18}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                />
 
                 <input
-                  id="busca-conteudo"
+                  id="buscaConteudo"
                   type="search"
                   value={busca}
                   onChange={(event) => setBusca(event.target.value)}
-                  placeholder="Digite o título ou assunto..."
-                  className="w-full bg-transparent text-sm text-slate-800 outline-none placeholder:text-slate-400"
+                  placeholder="Ex.: ansiedade, autocuidado..."
+                  className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
                 />
               </div>
             </div>
 
-            {/* Categoria */}
             <div>
               <label
-                htmlFor="categoria-conteudo"
+                htmlFor="categoriaConteudo"
                 className="mb-2 block text-sm font-semibold text-slate-700"
               >
                 Categoria
@@ -185,16 +223,16 @@ function Conteudos() {
               <div className="relative">
                 <Filter
                   size={17}
-                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-violet-500"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
                 />
 
                 <select
-                  id="categoria-conteudo"
+                  id="categoriaConteudo"
                   value={categoriaSelecionada}
                   onChange={(event) =>
                     setCategoriaSelecionada(event.target.value)
                   }
-                  className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-3 text-sm text-slate-700 outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+                  className="w-full appearance-none rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
                 >
                   <option value="">Todas as categorias</option>
 
@@ -210,200 +248,182 @@ function Conteudos() {
               </div>
             </div>
 
-            {/* Pesquisar */}
-            <div className="flex items-end">
+            <div className="flex items-end gap-2">
               <button
                 type="submit"
                 disabled={carregando}
-                className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-violet-700 px-6 font-semibold text-white transition-colors hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-violet-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <Search size={18} />
-                Pesquisar
+                <Search size={17} />
+                Buscar
+              </button>
+
+              <button
+                type="button"
+                onClick={() => void limparFiltros()}
+                disabled={carregando}
+                aria-label="Limpar filtros"
+                title="Limpar filtros"
+                className="inline-flex items-center justify-center rounded-xl border border-slate-200 px-4 py-3 text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <RefreshCw size={17} />
               </button>
             </div>
           </div>
-
-          <div className="mt-4 flex justify-end">
-            <button
-              type="button"
-              onClick={limparFiltros}
-              disabled={carregando}
-              className="text-sm font-medium text-violet-700 transition-colors hover:text-violet-900 disabled:opacity-50"
-            >
-              Limpar filtros
-            </button>
-          </div>
         </form>
 
-        {/* Resultados */}
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-slate-900">
-            Materiais disponíveis
-          </h2>
-
-          {!carregando && !erro && (
-            <p className="mt-1 text-sm text-slate-500">
-              {conteudos.length} conteúdo(s) encontrado(s)
-            </p>
-          )}
-        </div>
-
-        {/* Carregamento */}
-        {carregando && (
-          <div className="flex flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white py-20">
-            <LoaderCircle
-              size={38}
-              className="animate-spin text-violet-600"
-            />
-
-            <p className="mt-4 text-sm font-medium text-slate-600">
-              Carregando conteúdos...
-            </p>
-          </div>
-        )}
-
-        {/* Erro */}
-        {!carregando && erro && (
-          <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center">
-            <AlertCircle
-              size={34}
-              className="mx-auto text-red-500"
-            />
-
-            <h3 className="mt-4 text-lg font-bold text-red-900">
-              Não foi possível carregar os conteúdos
-            </h3>
-
-            <p className="mt-2 text-sm leading-6 text-red-700">
+        {/* Mensagem de erro */}
+        {erro && (
+          <div
+            role="alert"
+            className="mb-8 flex flex-col gap-3 rounded-xl border border-red-200 bg-red-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div className="flex items-start gap-3 text-sm text-red-700">
+              <AlertCircle size={19} className="mt-0.5 shrink-0" />
               {erro}
-            </p>
+            </div>
 
             <button
               type="button"
-              onClick={carregarDadosIniciais}
-              className="mt-6 inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-red-700"
+              onClick={() => void carregarDadosIniciais()}
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-red-200 px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100"
             >
-              <RefreshCw size={17} />
+              <RefreshCw size={16} />
               Tentar novamente
             </button>
           </div>
         )}
 
-        {/* Listagem */}
-        {!carregando && !erro && conteudos.length > 0 && (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {conteudos.map((conteudo) => (
-              <article
-                key={conteudo.idConteudo}
-                className="group flex flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-violet-200 hover:shadow-lg hover:shadow-violet-100/60"
-              >
-                {/* Ícone e assunto */}
-                <div className="mb-5 flex items-start justify-between gap-3">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-700 transition-colors group-hover:bg-violet-100">
-                    <BookOpen size={25} />
-                  </div>
+        {/* Lista de conteúdos */}
+        {carregando ? (
+          <div className="flex min-h-64 flex-col items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white">
+            <LoaderCircle
+              size={32}
+              className="animate-spin text-violet-600"
+            />
 
-                  {conteudo.assunto && (
-                    <span className="rounded-full bg-teal-50 px-3 py-1.5 text-xs font-semibold text-teal-700">
-                      {conteudo.assunto}
-                    </span>
-                  )}
-                </div>
-
-                {/* Título */}
-                <h3 className="text-lg font-bold leading-snug text-slate-900">
-                  {conteudo.titulo}
-                </h3>
-
-                {/* Descrição */}
-                <p className="mt-3 flex-1 text-sm leading-7 text-slate-600">
-                  {conteudo.descricao ||
-                    "Não há descrição disponível para este conteúdo."}
-                </p>
-
-                {/* Categorias */}
-                {conteudo.categorias && conteudo.categorias.length > 0 && (
-                  <div className="mt-5 flex flex-wrap gap-2">
-                    {conteudo.categorias.map((categoria) => (
-                      <span
-                        key={categoria.idCategoriaConteudo}
-                        className="rounded-full bg-violet-50 px-3 py-1.5 text-xs font-medium text-violet-700"
-                      >
-                        {categoria.nome}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                {/* Informações */}
-                <div className="mt-6 space-y-3 border-t border-slate-100 pt-5">
-                  <div className="flex items-center gap-3 text-sm text-slate-600">
-                    <CalendarDays
-                      size={17}
-                      className="shrink-0 text-violet-600"
-                    />
-
-                    <span>
-                      {formatarData(conteudo.dataPublicacao)}
-                    </span>
-                  </div>
-
-                  {conteudo.fonteInformacao && (
-                    <div className="flex items-start gap-3 text-sm text-slate-600">
-                      <FileText
-                        size={17}
-                        className="mt-0.5 shrink-0 text-violet-600"
-                      />
-
-                      <span className="break-words">
-                        {conteudo.fonteInformacao}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Material */}
-                {conteudo.material &&
-                  validarUrlMaterial(conteudo.material) && (
-                    <a
-                      href={conteudo.material}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-violet-700 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-violet-800"
-                    >
-                      Acessar material
-                      <ExternalLink size={16} />
-                    </a>
-                  )}
-
-                {conteudo.material &&
-                  !validarUrlMaterial(conteudo.material) && (
-                    <div className="mt-6 rounded-xl bg-violet-50 px-4 py-3 text-sm leading-6 text-violet-800">
-                      {conteudo.material}
-                    </div>
-                  )}
-              </article>
-            ))}
-          </div>
-        )}
-
-        {/* Lista vazia */}
-        {!carregando && !erro && conteudos.length === 0 && (
-          <div className="rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-violet-50 text-violet-600">
-              <Heart size={30} />
-            </div>
-
-            <h3 className="mt-5 text-xl font-bold text-slate-900">
-              Nenhum conteúdo encontrado
-            </h3>
-
-            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
-              Não encontramos conteúdos com os critérios informados.
-              Tente modificar sua pesquisa ou selecionar outra categoria.
+            <p className="text-sm text-slate-500">
+              Carregando conteúdos...
             </p>
           </div>
+        ) : conteudos.length > 0 ? (
+          <>
+            <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <h2 className="text-xl font-bold text-slate-900">
+                Conteúdos disponíveis
+              </h2>
+
+              <p className="text-sm text-slate-500">
+                {conteudos.length}{" "}
+                {conteudos.length === 1
+                  ? "conteúdo encontrado"
+                  : "conteúdos encontrados"}
+              </p>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+              {conteudos.map((conteudo) => (
+                <article
+                  key={conteudo.idConteudo}
+                  className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-lg"
+                >
+                  <div className="flex h-40 items-center justify-center bg-gradient-to-br from-violet-100 to-teal-50">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white text-violet-600 shadow-sm">
+                      <FileText size={32} />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-1 flex-col p-6">
+                    <div className="mb-4 flex flex-wrap items-center gap-2">
+                      <span className="rounded-full bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700">
+                        {conteudo.categorias
+                          .map((categoria) => categoria.nome)
+                          .join(", ") || "Sem categoria"}
+                      </span>
+
+                      <span className="inline-flex items-center gap-1 text-xs text-slate-400">
+                        <CalendarDays size={13} />
+                        {formatarData(conteudo.dataPublicacao)}
+                      </span>
+                    </div>
+
+                    <h3 className="text-lg font-bold leading-snug text-slate-900">
+                      {conteudo.titulo}
+                    </h3>
+
+                    <p className="mt-3 flex-1 text-sm leading-7 text-slate-600">
+                      {conteudo.descricao}
+                    </p>
+
+                    {conteudo.fonteInformacao && (
+                      <p className="mt-4 text-xs text-slate-400">
+                        Fonte: {conteudo.fonteInformacao}
+                      </p>
+                    )}
+
+                    {validarUrlMaterial(conteudo.material) && (
+                      <a
+                        href={conteudo.material}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-6 inline-flex items-center justify-center gap-2 rounded-xl bg-violet-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-violet-700"
+                      >
+                        Acessar material
+                        <ExternalLink size={16} />
+                      </a>
+                    )}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-50 text-violet-600">
+              <BookOpen size={32} />
+            </div>
+
+            <h2 className="mt-5 text-lg font-bold text-slate-900">
+              Nenhum conteúdo encontrado
+            </h2>
+
+            <p className="mt-2 max-w-md text-sm leading-7 text-slate-500">
+              Não encontramos materiais com os filtros selecionados.
+              Experimente alterar os termos da pesquisa ou limpar os filtros.
+            </p>
+
+            <button
+              type="button"
+              onClick={() => void limparFiltros()}
+              className="mt-5 inline-flex items-center gap-2 rounded-xl bg-violet-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-violet-700"
+            >
+              <RefreshCw size={16} />
+              Limpar filtros
+            </button>
+          </div>
         )}
+
+        <div className="mt-12 rounded-2xl border border-violet-100 bg-violet-50 p-6">
+          <div className="flex items-start gap-3">
+            <Heart
+              size={22}
+              className="mt-1 shrink-0 text-violet-600"
+            />
+
+            <div>
+              <h2 className="font-bold text-violet-900">
+                Informação também é cuidado
+              </h2>
+
+              <p className="mt-2 text-sm leading-7 text-violet-800">
+                Os conteúdos disponibilizados têm finalidade informativa
+                e educativa. Eles não substituem a avaliação,
+                o diagnóstico ou o acompanhamento de profissionais
+                de saúde qualificados.
+              </p>
+            </div>
+          </div>
+        </div>
       </section>
     </main>
   );
