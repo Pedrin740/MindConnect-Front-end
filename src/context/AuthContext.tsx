@@ -10,7 +10,6 @@ import {
   cadastrarUsuario,
   realizarLogin,
   buscarUsuarioAutenticado,
-  realizarLogout,
   type UsuarioAutenticado,
 } from "../services/authService";
 
@@ -31,6 +30,7 @@ interface AuthContextData {
 }
 
 const AUTH_STORAGE_KEY = "mindconnect_token";
+const USER_ID_STORAGE_KEY = "mindconnect_user_id";
 
 const AuthContext = createContext<AuthContextData | undefined>(
   undefined
@@ -61,10 +61,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return;
       }
 
+      const idUsuario = Number(
+        localStorage.getItem(USER_ID_STORAGE_KEY)
+      );
+
+      if (!idUsuario || !Number.isInteger(idUsuario)) {
+        localStorage.removeItem(AUTH_STORAGE_KEY);
+        localStorage.removeItem(USER_ID_STORAGE_KEY);
+
+        setUser(null);
+        setToken(null);
+        setIsLoading(false);
+        return;
+      }
+
       setIsLoading(true);
 
       try {
-        const usuario = await buscarUsuarioAutenticado(token);
+        const usuario = await buscarUsuarioAutenticado(
+          token,
+          idUsuario
+        );
 
         if (!ativo) return;
 
@@ -75,6 +92,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         console.error("Erro ao restaurar sessão:", error);
 
         localStorage.removeItem(AUTH_STORAGE_KEY);
+        localStorage.removeItem(USER_ID_STORAGE_KEY);
+
         setToken(null);
         setUser(null);
       } finally {
@@ -91,15 +110,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
   }, [token]);
 
-  async function login(email: string, senha: string): Promise<void> {
+  async function login(
+    email: string,
+    senha: string
+  ): Promise<void> {
     const sessao = await realizarLogin({
       email: email.trim().toLowerCase(),
       senha,
     });
 
-    localStorage.setItem(AUTH_STORAGE_KEY, sessao.token);
+    const usuario: AuthUser = {
+      id: sessao.idUsuario,
+      nome: sessao.nome,
+      email: sessao.email,
+      administrador: sessao.administrador,
+      nivelAcesso: sessao.nivelAcesso,
+    };
 
-    setUser(sessao.usuario);
+    localStorage.setItem(AUTH_STORAGE_KEY, sessao.token);
+    localStorage.setItem(
+      USER_ID_STORAGE_KEY,
+      String(sessao.idUsuario)
+    );
+
+    setUser(usuario);
     setToken(sessao.token);
   }
 
@@ -108,34 +142,26 @@ export function AuthProvider({ children }: AuthProviderProps) {
     email: string,
     senha: string
   ): Promise<void> {
-    const sessao = await cadastrarUsuario({
+    const dadosCadastro = {
       nome: nome.trim(),
       email: email.trim().toLowerCase(),
       senha,
-    });
+    };
 
-    localStorage.setItem(AUTH_STORAGE_KEY, sessao.token);
+    await cadastrarUsuario(dadosCadastro);
 
-    setUser(sessao.usuario);
-    setToken(sessao.token);
+    // O cadastro não retorna token.
+    // Por isso, realizamos o login após criar a conta.
+    await login(dadosCadastro.email, dadosCadastro.senha);
   }
 
   async function logout(): Promise<void> {
-    const tokenAtual = token;
-
     localStorage.removeItem(AUTH_STORAGE_KEY);
+    localStorage.removeItem(USER_ID_STORAGE_KEY);
 
     setToken(null);
     setUser(null);
     setIsLoading(false);
-
-    if (tokenAtual) {
-      try {
-        await realizarLogout(tokenAtual);
-      } catch (error) {
-        console.error("Erro ao encerrar sessão na API:", error);
-      }
-    }
   }
 
   const value: AuthContextData = {

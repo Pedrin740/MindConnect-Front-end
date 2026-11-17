@@ -4,14 +4,24 @@ export interface UsuarioAutenticado {
   id: number;
   nome: string;
   email: string;
-  pontos: number;
-  nivel: string;
-  recompensa: string;
+  administrador: boolean;
+  nivelAcesso: string;
 }
 
-export interface SessaoAutenticacao {
+export interface RespostaLogin {
+  idUsuario: number;
+  nome: string;
+  email: string;
+  administrador: boolean;
+  nivelAcesso: string;
   token: string;
-  usuario: UsuarioAutenticado;
+}
+
+export interface UsuarioCadastro {
+  idUsuario: number;
+  nome: string;
+  email: string;
+  dataCadastro: string;
 }
 
 export interface CadastroDados {
@@ -27,39 +37,34 @@ export interface LoginDados {
 
 export async function cadastrarUsuario(
   dados: CadastroDados
-): Promise<SessaoAutenticacao> {
-  return api<SessaoAutenticacao>(
-    "/api/v1/auth/cadastro",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(dados),
-    }
-  );
+): Promise<UsuarioCadastro> {
+  return api<UsuarioCadastro>("/api/usuarios", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(dados),
+  });
 }
 
 export async function realizarLogin(
   dados: LoginDados
-): Promise<SessaoAutenticacao> {
-  return api<SessaoAutenticacao>(
-    "/api/v1/auth/login",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(dados),
-    }
-  );
+): Promise<RespostaLogin> {
+  return api<RespostaLogin>("/api/auth/login", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(dados),
+  });
 }
 
 export async function buscarUsuarioAutenticado(
-  token: string
+  token: string,
+  idUsuario: number
 ): Promise<UsuarioAutenticado> {
-  return api<UsuarioAutenticado>(
-    "/api/v1/usuarios/me",
+  const usuario = await api<UsuarioCadastro>(
+    `/api/usuarios/${idUsuario}`,
     {
       method: "GET",
       headers: {
@@ -67,18 +72,12 @@ export async function buscarUsuarioAutenticado(
       },
     }
   );
-}
 
-export async function realizarLogout(
-  token: string
-): Promise<void> {
-  return api<void>(
-    "/api/v1/auth/logout",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
+  return {
+    id: usuario.idUsuario,
+    nome: usuario.nome,
+    email: usuario.email,
+    administrador: false,
+    nivelAcesso: "",
+  };
 }
