@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { cadastrarUsuario, realizarLogin, buscarUsuarioAutenticado } from "../services/authService";
+import { atualizarDadosConta, cadastrarUsuario, realizarLogin, buscarUsuarioAutenticado } from "../services/authService";
 import { AuthContext, type AuthUser, type AuthContextData, AUTH_STORAGE_KEY, USER_ID_STORAGE_KEY, ADMIN_STORAGE_KEY, ACCESS_LEVEL_STORAGE_KEY } from "./authContextDefinition";
 
 interface AuthProviderProps {
@@ -49,11 +49,9 @@ function limparSessao(): void {
   localStorage.removeItem(USER_CACHE_KEY);
 }
 
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-export function AuthProvider({ children }: AuthProviderProps) {
+export function AuthProvider({
+  children,
+}: AuthProviderProps) {
   const [user, setUser] = useState<AuthUser | null>(
     obterUsuarioSalvo
   );
@@ -116,7 +114,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       } catch (error) {
         if (!ativo) return;
 
-        console.error("Erro ao restaurar sessão:", error);
+        console.error(
+          "Erro ao restaurar sessão:",
+          error
+        );
 
         limparSessao();
         setToken(null);
@@ -152,7 +153,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       nivelAcesso: sessao.nivelAcesso,
     };
 
-    localStorage.setItem(AUTH_STORAGE_KEY, sessao.token);
+    localStorage.setItem(
+      AUTH_STORAGE_KEY,
+      sessao.token
+    );
 
     localStorage.setItem(
       USER_ID_STORAGE_KEY,
@@ -195,6 +199,38 @@ export function AuthProvider({ children }: AuthProviderProps) {
     );
   }
 
+  async function atualizarConta(
+    email: string,
+    senhaAtual: string,
+    novaSenha?: string
+  ): Promise<void> {
+    if (!user || !token) {
+      throw new Error(
+        "É necessário estar autenticado para alterar os dados da conta."
+      );
+    }
+
+    const atualizado = await atualizarDadosConta(
+      token,
+      user.id,
+      {
+        nome: user.nome,
+        email: email.trim().toLowerCase(),
+        senhaAtual,
+        ...(novaSenha ? { novaSenha } : {}),
+      }
+    );
+
+    const usuarioAtualizado: AuthUser = {
+      ...user,
+      nome: atualizado.nome,
+      email: atualizado.email,
+    };
+
+    salvarUsuario(usuarioAtualizado);
+    setUser(usuarioAtualizado);
+  }
+
   async function logout(): Promise<void> {
     limparSessao();
 
@@ -210,6 +246,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     isLoading,
     login,
     register,
+    atualizarConta,
     logout,
   };
 

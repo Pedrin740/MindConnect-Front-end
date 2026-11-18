@@ -1,4 +1,8 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+} from "react-router-dom";
 
 import MainLayout from "./components/MainLayout";
 
@@ -14,6 +18,7 @@ import Diario from "./pages/Diario";
 import Cadastro from "./pages/Cadastro";
 import Login from "./pages/Login";
 import Admin from "./pages/Admin";
+import Configuracoes from "./pages/Configuracoes";
 
 function App() {
   return (
@@ -21,21 +26,22 @@ function App() {
       <Routes>
         <Route element={<MainLayout />}>
           <Route path="/" element={<Home />} />
-          <Route path="/integrantes" element={<Integrantes />} />
+          <Route path="/integrantes" element={<Integrantes />}/>
           <Route path="/sobre" element={<Sobre />} />
           <Route path="/faq" element={<FAQ />} />
           <Route path="/contato" element={<Contato />} />
 
-          <Route path="/servicos" element={<Servicos />} />
-          <Route path="/servicos/:id" element={<ServicoDetalhe />} />
+          <Route path="/servicos" element={<Servicos />}/>
+          <Route path="/servicos/:id" element={<ServicoDetalhe />}/>
 
-          <Route path="/conteudos" element={<Conteudos />} />
-          <Route path="/diario" element={<Diario />} />
+          <Route path="/conteudos" element={<Conteudos />}/>
+          <Route path="/diario" element={<Diario />}/>
 
-          <Route path="/cadastro" element={<Cadastro />} />
-          <Route path="/login" element={<Login />} />
+          <Route path="/cadastro" element={<Cadastro />}/>
+          <Route path="/login" element={<Login />}/>
+          <Route path="/admin" element={<Admin />}/>
 
-          <Route path="/admin" element={<Admin />} />
+          <Route path="/configuracoes" element={<Configuracoes />}/>
         </Route>
       </Routes>
     </BrowserRouter>
