@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Mail, MessageCircle, HeartHandshake, Send, Sparkles} from "lucide-react";
+import { Mail, MessageCircle, HeartHandshake, Send, Sparkles, CheckCircle2, AlertCircle, LoaderCircle } from "lucide-react";
+import { ApiError } from "../services/api";
+import { enviarContato } from "../services/contatoService";
 
 type FormularioContato = {
   nome: string;
@@ -15,11 +17,17 @@ const formularioInicial: FormularioContato = {
   mensagem: "",
 };
 
+// Exige domínio com pelo menos dois caracteres antes da extensão.
+const EMAIL_VALIDO =
+  /^(?!\.)(?!.*\.\.)[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+(?<!\.)@(?:[A-Za-z0-9][A-Za-z0-9-]*[A-Za-z0-9])(?:\.[A-Za-z0-9][A-Za-z0-9-]*[A-Za-z0-9])*\.[A-Za-z]{2,63}$/;
+
 export default function Contato() {
   const [formulario, setFormulario] =
     useState<FormularioContato>(formularioInicial);
 
   const [mensagemStatus, setMensagemStatus] = useState("");
+  const [tipoStatus, setTipoStatus] = useState<"sucesso" | "erro" | "">("");
+  const [enviando, setEnviando] = useState(false);
 
   function atualizarCampo(
     campo: keyof FormularioContato,
@@ -31,19 +39,64 @@ export default function Contato() {
     }));
 
     setMensagemStatus("");
+    setTipoStatus("");
   }
 
   function limparFormulario() {
+    if (enviando) return;
+
     setFormulario(formularioInicial);
     setMensagemStatus("");
+    setTipoStatus("");
   }
 
-  function enviarFormulario(event: React.FormEvent<HTMLFormElement>) {
+  async function enviarFormulario(
+    event: React.FormEvent<HTMLFormElement>
+  ) {
     event.preventDefault();
 
-    setMensagemStatus(
-      "Formulário validado! O envio de mensagens ainda precisa ser conectado ao serviço de atendimento do Mind Connect."
-    );
+    if (enviando) return;
+
+    const email = formulario.email.trim();
+
+    if (!EMAIL_VALIDO.test(email)) {
+      setTipoStatus("erro");
+      setMensagemStatus(
+        "Informe um endereço de e-mail válido. Exemplo: usuario@gmail.com."
+      );
+      return;
+    }
+
+    setEnviando(true);
+    setMensagemStatus("");
+    setTipoStatus("");
+
+    try {
+      await enviarContato({
+        nome: formulario.nome.trim(),
+        email,
+        motivo: formulario.motivo,
+        mensagem: formulario.mensagem.trim(),
+      });
+
+      setFormulario(formularioInicial);
+      setTipoStatus("sucesso");
+      setMensagemStatus(
+        "Sua mensagem foi enviada com sucesso! Agradecemos por entrar em contato com o Mind Connect."
+      );
+    } catch (erro) {
+      setTipoStatus("erro");
+
+      if (erro instanceof ApiError) {
+        setMensagemStatus(erro.message);
+      } else {
+        setMensagemStatus(
+          "Não foi possível enviar sua mensagem. Tente novamente em alguns instantes."
+        );
+      }
+    } finally {
+      setEnviando(false);
+    }
   }
 
   return (
@@ -136,11 +189,12 @@ export default function Contato() {
                   maxLength={100}
                   autoComplete="name"
                   value={formulario.nome}
+                  disabled={enviando}
                   onChange={(event) =>
                     atualizarCampo("nome", event.target.value)
                   }
                   placeholder="Seu nome"
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-gray-400 focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-100"
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-gray-400 focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-100 disabled:cursor-not-allowed disabled:opacity-60"
                 />
               </div>
 
@@ -160,11 +214,13 @@ export default function Contato() {
                   maxLength={150}
                   autoComplete="email"
                   value={formulario.email}
+                  disabled={enviando}
                   onChange={(event) =>
                     atualizarCampo("email", event.target.value)
                   }
                   placeholder="Seu e-mail"
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-gray-400 focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-100"
+                  title="Informe um e-mail válido, como usuario@gmail.com."
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-gray-400 focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-100 disabled:cursor-not-allowed disabled:opacity-60"
                 />
               </div>
 
@@ -181,10 +237,11 @@ export default function Contato() {
                   name="motivo"
                   required
                   value={formulario.motivo}
+                  disabled={enviando}
                   onChange={(event) =>
                     atualizarCampo("motivo", event.target.value)
                   }
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-100"
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-100 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <option value="" disabled>
                     Selecione o motivo
@@ -214,11 +271,12 @@ export default function Contato() {
                   maxLength={1000}
                   rows={5}
                   value={formulario.mensagem}
+                  disabled={enviando}
                   onChange={(event) =>
                     atualizarCampo("mensagem", event.target.value)
                   }
                   placeholder="Digite sua mensagem"
-                  className="w-full resize-y rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-gray-400 focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-100"
+                  className="w-full resize-y rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-gray-400 focus:border-violet-400 focus:bg-white focus:ring-2 focus:ring-violet-100 disabled:cursor-not-allowed disabled:opacity-60"
                 />
 
                 <p className="mt-1 text-right text-xs text-gray-400">
@@ -228,26 +286,56 @@ export default function Contato() {
 
               {mensagemStatus && (
                 <div
-                  role="status"
-                  className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-800"
+                  role={tipoStatus === "erro" ? "alert" : "status"}
+                  className={`flex items-start gap-2 rounded-xl border p-4 text-sm leading-6 ${
+                    tipoStatus === "sucesso"
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                      : "border-red-200 bg-red-50 text-red-800"
+                  }`}
                 >
-                  {mensagemStatus}
+                  {tipoStatus === "sucesso" ? (
+                    <CheckCircle2
+                      size={19}
+                      className="mt-0.5 shrink-0"
+                    />
+                  ) : (
+                    <AlertCircle
+                      size={19}
+                      className="mt-0.5 shrink-0"
+                    />
+                  )}
+
+                  <span>{mensagemStatus}</span>
                 </div>
               )}
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <button
                   type="submit"
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-violet-700 px-5 py-3 font-semibold text-white shadow-md shadow-violet-100 transition-colors hover:bg-violet-800"
+                  disabled={enviando}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-violet-700 px-5 py-3 font-semibold text-white shadow-md shadow-violet-100 transition-colors hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  Enviar
-                  <Send size={17} />
+                  {enviando ? (
+                    <>
+                      Enviando...
+                      <LoaderCircle
+                        size={17}
+                        className="animate-spin"
+                      />
+                    </>
+                  ) : (
+                    <>
+                      Enviar
+                      <Send size={17} />
+                    </>
+                  )}
                 </button>
 
                 <button
                   type="button"
                   onClick={limparFormulario}
-                  className="rounded-xl border border-gray-200 bg-white px-5 py-3 font-semibold text-slate-700 transition-colors hover:bg-gray-50"
+                  disabled={enviando}
+                  className="rounded-xl border border-gray-200 bg-white px-5 py-3 font-semibold text-slate-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   Limpar
                 </button>
