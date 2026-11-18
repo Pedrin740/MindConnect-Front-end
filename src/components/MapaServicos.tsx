@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
-import { MapPin, LoaderCircle, Filter } from "lucide-react";
+import { MapPin, LoaderCircle, Filter, Info } from "lucide-react";
 import type { LatLngBoundsExpression } from "leaflet";
 import type { ServicoAcolhimento, CategoriaServico } from "../services/servicoTypes";
 import { buscarServicos, buscarCategoriasServico } from "../services/servicosService";
@@ -144,7 +144,6 @@ function MapaServicos(_props: MapaServicosProps) {
 
   const [servicosLocalizados, setServicosLocalizados] = useState<ServicoComCoordenadas[]>([]);
   const [carregandoGeocodificacao, setCarregandoGeocodificacao] = useState(false);
-  const [erroGeocodificacao, setErroGeocodificacao] = useState("");
 
   // Carrega todos os serviços e todas as categorias independentemente
   // dos filtros utilizados na página de serviços.
@@ -202,7 +201,6 @@ function MapaServicos(_props: MapaServicosProps) {
     let cancelado = false;
 
     async function localizarServicos() {
-      setErroGeocodificacao("");
       setServicosLocalizados([]);
 
       const servicosComCoordenadasValidas: ServicoComCoordenadas[] =
@@ -266,14 +264,8 @@ function MapaServicos(_props: MapaServicosProps) {
             ...encontrados,
           ]);
         }
-      } catch (error) {
-        if (cancelado) return;
-
-        setErroGeocodificacao(
-          error instanceof Error
-            ? error.message
-            : "Não foi possível localizar alguns serviços."
-        );
+      } catch {
+        // O aviso informativo abaixo substitui a mensagem técnica de geocodificação.
       } finally {
         if (!cancelado) {
           setCarregandoGeocodificacao(false);
@@ -374,11 +366,15 @@ function MapaServicos(_props: MapaServicosProps) {
         </div>
       )}
 
-      {erroGeocodificacao && (
-        <div className="border-b border-amber-100 bg-amber-50 px-5 py-3 text-sm text-amber-800">
-          Alguns endereços não puderam ser localizados: {erroGeocodificacao}
-        </div>
-      )}
+      {/* Aviso sobre a disponibilidade das localizações */}
+      <div className="flex items-start gap-3 border-b border-amber-100 bg-amber-50 px-5 py-4 text-sm leading-6 text-amber-800">
+        <Info size={18} className="mt-0.5 shrink-0" />
+
+        <p>
+          Nem todas as unidades cadastradas estão representadas no mapa,
+          devido à ausência ou à insuficiência de dados públicos de localização.
+        </p>
+      </div>
 
       {!carregandoDados && !erroDados && coordenadas.length > 0 ? (
         <MapContainer
