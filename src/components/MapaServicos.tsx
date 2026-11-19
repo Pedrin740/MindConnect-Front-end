@@ -48,7 +48,9 @@ function formatarTelefone(telefone: string): string {
   return telefone.trim();
 }
 
-function possuiCoordenadasValidas(servico: ServicoAcolhimento): boolean {
+function possuiCoordenadasValidas(
+  servico: ServicoAcolhimento
+): boolean {
   const latitude = Number(servico.latitude);
   const longitude = Number(servico.longitude);
 
@@ -134,7 +136,10 @@ function AjustarEnquadramento({
 }
 
 function MapaServicos(_props: MapaServicosProps) {
-  const [todosServicos, setTodosServicos] = useState<ServicoAcolhimento[]>([]);
+  const [todosServicos, setTodosServicos] = useState<
+    ServicoAcolhimento[]
+  >([]);
+
   const [categorias, setCategorias] = useState<CategoriaServico[]>([]);
 
   const [categoriaSelecionada, setCategoriaSelecionada] = useState("");
@@ -142,10 +147,14 @@ function MapaServicos(_props: MapaServicosProps) {
   const [carregandoDados, setCarregandoDados] = useState(true);
   const [erroDados, setErroDados] = useState("");
 
-  const [servicosLocalizados, setServicosLocalizados] = useState<ServicoComCoordenadas[]>([]);
-  const [carregandoGeocodificacao, setCarregandoGeocodificacao] = useState(false);
+  const [servicosLocalizados, setServicosLocalizados] = useState<
+    ServicoComCoordenadas[]
+  >([]);
 
-  // Carrega todos os serviços e todas as categorias independentemente
+  const [carregandoGeocodificacao, setCarregandoGeocodificacao] =
+    useState(false);
+
+  // Carrega todos os serviços e categorias independentemente
   // dos filtros utilizados na página de serviços.
   useEffect(() => {
     let cancelado = false;
@@ -196,7 +205,8 @@ function MapaServicos(_props: MapaServicosProps) {
     );
   }, [todosServicos, categoriaSelecionada]);
 
-  // Localiza os serviços e utiliza as coordenadas já cadastradas quando disponíveis.
+  // Localiza os serviços e utiliza as coordenadas cadastradas
+  // sempre que estiverem disponíveis.
   useEffect(() => {
     let cancelado = false;
 
@@ -228,7 +238,11 @@ function MapaServicos(_props: MapaServicosProps) {
       try {
         const encontrados: ServicoComCoordenadas[] = [];
 
-        for (let i = 0; i < servicosSemCoordenadas.length; i += 3) {
+        for (
+          let i = 0;
+          i < servicosSemCoordenadas.length;
+          i += 3
+        ) {
           if (cancelado) return;
 
           const lote = servicosSemCoordenadas.slice(i, i + 3);
@@ -265,7 +279,8 @@ function MapaServicos(_props: MapaServicosProps) {
           ]);
         }
       } catch {
-        // O aviso informativo abaixo substitui a mensagem técnica de geocodificação.
+        // O aviso informativo substitui a mensagem técnica
+        // de geocodificação.
       } finally {
         if (!cancelado) {
           setCarregandoGeocodificacao(false);
@@ -282,6 +297,7 @@ function MapaServicos(_props: MapaServicosProps) {
     };
   }, [servicosFiltrados, carregandoDados, erroDados]);
 
+  // Coordenadas utilizadas para posicionar os marcadores no mapa.
   const coordenadas = useMemo<[number, number][]>(
     () =>
       servicosLocalizados.map((item) => [
@@ -290,6 +306,15 @@ function MapaServicos(_props: MapaServicosProps) {
       ]),
     [servicosLocalizados]
   );
+
+  // O contador utiliza diretamente a mesma lista que alimenta
+  // os marcadores, evitando divergência entre as duas informações.
+  const quantidadeLocalizacoes = servicosLocalizados.length;
+
+  const textoLocalizacoes =
+    quantidadeLocalizacoes === 1
+      ? "localização"
+      : "localizações";
 
   const centroInicial: [number, number] =
     coordenadas.length > 0
@@ -328,7 +353,9 @@ function MapaServicos(_props: MapaServicosProps) {
             <select
               id="categoria-mapa"
               value={categoriaSelecionada}
-              onChange={(event) => setCategoriaSelecionada(event.target.value)}
+              onChange={(event) =>
+                setCategoriaSelecionada(event.target.value)
+              }
               disabled={carregandoDados || Boolean(erroDados)}
               className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-100 disabled:cursor-not-allowed disabled:opacity-60"
             >
@@ -345,15 +372,22 @@ function MapaServicos(_props: MapaServicosProps) {
             </select>
           </div>
 
+          {/* Contador de localizações */}
           <div className="flex flex-wrap items-center gap-2">
-            <span className="w-fit rounded-full bg-violet-50 px-3 py-1.5 text-sm font-semibold text-violet-700">
-              {coordenadas.length} localização(ões)
+            <span className="inline-flex w-fit shrink-0 items-center whitespace-nowrap rounded-full bg-violet-50 px-3 py-1.5 text-sm font-semibold text-violet-700">
+              {quantidadeLocalizacoes} {textoLocalizacoes}
             </span>
 
             {(carregandoDados || carregandoGeocodificacao) && (
               <span className="flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700">
-                <LoaderCircle size={14} className="animate-spin" />
-                {carregandoDados ? "Carregando mapa..." : "Localizando endereços..."}
+                <LoaderCircle
+                  size={14}
+                  className="animate-spin shrink-0"
+                />
+
+                {carregandoDados
+                  ? "Carregando mapa..."
+                  : "Localizando endereços..."}
               </span>
             )}
           </div>
@@ -376,7 +410,9 @@ function MapaServicos(_props: MapaServicosProps) {
         </p>
       </div>
 
-      {!carregandoDados && !erroDados && coordenadas.length > 0 ? (
+      {!carregandoDados &&
+      !erroDados &&
+      coordenadas.length > 0 ? (
         <MapContainer
           key={categoriaSelecionada || "todas"}
           center={centroInicial}
@@ -391,49 +427,54 @@ function MapaServicos(_props: MapaServicosProps) {
 
           <AjustarEnquadramento coordenadas={coordenadas} />
 
-          {servicosLocalizados.map(({ servico, latitude, longitude }) => (
-            <Marker
-              key={servico.idServico}
-              position={[latitude, longitude]}
-              icon={iconeMarcador}
-            >
-              <Popup>
-                <div className="min-w-[210px]">
-                  <h3 className="text-sm font-bold text-slate-900">
-                    {servico.nome}
-                  </h3>
+          {servicosLocalizados.map(
+            ({ servico, latitude, longitude }) => (
+              <Marker
+                key={servico.idServico}
+                position={[latitude, longitude]}
+                icon={iconeMarcador}
+              >
+                <Popup>
+                  <div className="min-w-[210px]">
+                    <h3 className="text-sm font-bold text-slate-900">
+                      {servico.nome}
+                    </h3>
 
-                  <span className="mt-1 inline-block rounded-full bg-violet-50 px-2 py-1 text-xs font-semibold text-violet-700">
-                    {servico.nomeCategoria}
-                  </span>
+                    <span className="mt-1 inline-block rounded-full bg-violet-50 px-2 py-1 text-xs font-semibold text-violet-700">
+                      {servico.nomeCategoria}
+                    </span>
 
-                  <p className="mt-2 text-xs leading-5 text-slate-600">
-                    {servico.endereco}
-                    {servico.bairro && `, ${servico.bairro}`}
-                    {servico.municipio && ` — ${servico.municipio}`}
-                  </p>
-
-                  {servico.telefone && (
-                    <p className="mt-2 text-xs text-slate-600">
-                      Telefone: {formatarTelefone(servico.telefone)}
+                    <p className="mt-2 text-xs leading-5 text-slate-600">
+                      {servico.endereco}
+                      {servico.bairro && `, ${servico.bairro}`}
+                      {servico.municipio && ` — ${servico.municipio}`}
                     </p>
-                  )}
 
-                  {servico.horarioFuncionamento && (
-                    <p className="mt-1 text-xs text-slate-600">
-                      Horário: {servico.horarioFuncionamento}
-                    </p>
-                  )}
-                </div>
-              </Popup>
-            </Marker>
-          ))}
+                    {servico.telefone && (
+                      <p className="mt-2 text-xs text-slate-600">
+                        Telefone: {formatarTelefone(servico.telefone)}
+                      </p>
+                    )}
+
+                    {servico.horarioFuncionamento && (
+                      <p className="mt-1 text-xs text-slate-600">
+                        Horário: {servico.horarioFuncionamento}
+                      </p>
+                    )}
+                  </div>
+                </Popup>
+              </Marker>
+            )
+          )}
         </MapContainer>
       ) : (
         <div className="flex h-[300px] flex-col items-center justify-center px-6 text-center">
           {carregandoDados || carregandoGeocodificacao ? (
             <>
-              <LoaderCircle size={38} className="animate-spin text-violet-500" />
+              <LoaderCircle
+                size={38}
+                className="animate-spin text-violet-500"
+              />
 
               <h3 className="mt-4 font-semibold text-slate-700">
                 Carregando localizações...
