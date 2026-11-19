@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { NavLink, Link } from "react-router-dom";
-import { Menu, X, UserPlus, LogIn, LogOut, UserRound, Settings } from "lucide-react";
+import { Menu, X, UserPlus, LogIn, LogOut, UserRound, Settings,} from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { useTheme } from "../context/ThemeContext";
 
@@ -76,17 +76,26 @@ function Navbar() {
       className={`sticky top-0 z-50 w-full border-b backdrop-blur-xl transition-colors duration-300 ${estiloHeader}`}
     >
       <nav className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-5 lg:px-8">
+
+        {/* Logo e nome da plataforma */}
         <NavLink
           to="/"
           onClick={() => setMenuOpen(false)}
-          className="flex shrink-0 items-center gap-2"
+          className="flex shrink-0 items-center gap-2.5"
           aria-label="Mind Connect - Página inicial"
         >
+          <img
+            src="/images/logo-mindconnect.png"
+            alt="Símbolo do Mind Connect"
+            className="h-9 w-9 shrink-0 rounded-lg object-cover shadow-sm"
+          />
+
           <span className="whitespace-nowrap text-xl font-bold tracking-tight text-violet-700 sm:text-2xl">
             Mind<span className="text-teal-500">Connect</span>
           </span>
         </NavLink>
 
+        {/* Navegação desktop */}
         <div className="hidden items-center gap-3 lg:flex xl:gap-5">
           {visibleNavigation.map((item) => (
             <NavLink
@@ -107,6 +116,7 @@ function Navbar() {
           ))}
         </div>
 
+        {/* Área da conta desktop */}
         <div className="hidden shrink-0 items-center justify-end gap-2 lg:flex xl:gap-3">
           {isLoading ? (
             <div
@@ -169,6 +179,7 @@ function Navbar() {
           )}
         </div>
 
+        {/* Botão do menu mobile */}
         <button
           type="button"
           onClick={() =>
@@ -185,6 +196,7 @@ function Navbar() {
         </button>
       </nav>
 
+      {/* Menu mobile */}
       {menuOpen && (
         <div
           id="menu-mobile"
