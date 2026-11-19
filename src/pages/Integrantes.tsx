@@ -22,7 +22,7 @@ const integrantes = [
     imagem: "/images/rafaela.jpeg",
     github: "https://github.com/mrafahdft",
     linkedin:
-      "https://www.linkedin.com/in/rafaela-donadio-bb3740369/",
+      "https://www.linkedin.com/in/rafaela-donadio-9ab70841b/",
   },
   {
     nome: "Pedro Henrique Cavalcante De Souza",
@@ -30,7 +30,7 @@ const integrantes = [
     imagem: "/images/pedro-henrique.jpeg",
     github: "https://github.com/pedrostack-01",
     linkedin:
-      "https://www.linkedin.com/in/pedro-souza-6282333b3/",
+      "https://www.linkedin.com/in/pedro-henrique-cardoso-cavalcante-de-souza-6282333b3/",
   },
   {
     nome: "Guilherme Joel de Camargo",
