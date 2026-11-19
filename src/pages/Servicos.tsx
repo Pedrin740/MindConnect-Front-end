@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Search, MapPin, Phone, Clock, HeartHandshake, LoaderCircle, AlertCircle } from "lucide-react";
-import { buscarServicos, buscarCategoriasServico, buscarMunicipios } from "../services/servicosService";
+import { buscarServicos, buscarCategoriasServico } from "../services/servicosService";
 import type { ServicoAcolhimento, CategoriaServico } from "../services/servicoTypes";
 import MapaServicos from "../components/MapaServicos";
 
@@ -41,13 +41,13 @@ function Servicos() {
 
   const [servicos, setServicos] = useState<ServicoAcolhimento[]>([]);
   const [categorias, setCategorias] = useState<CategoriaServico[]>([]);
-  const [municipios, setMunicipios] = useState<string[]>([]);
   const [regioes, setRegioes] = useState<string[]>([]);
 
   const [busca, setBusca] = useState(searchParams.get("busca") || "");
-  const [municipio, setMunicipio] = useState(searchParams.get("municipio") || "");
   const [regiao, setRegiao] = useState(searchParams.get("regiao") || "");
-  const [categoria, setCategoria] = useState(searchParams.get("categoria") || "");
+  const [categoria, setCategoria] = useState(
+    searchParams.get("categoria") || ""
+  );
 
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
@@ -58,26 +58,20 @@ function Servicos() {
         setCarregando(true);
         setErro("");
 
-        const [
-          listaServicos,
-          listaCategorias,
-          listaMunicipios,
-          todosServicos,
-        ] = await Promise.all([
-          buscarServicos(
-            searchParams.get("busca") || undefined,
-            searchParams.get("municipio") || undefined,
-            searchParams.get("regiao") || undefined,
-            searchParams.get("categoria") || undefined
-          ),
-          buscarCategoriasServico(),
-          buscarMunicipios(),
-          buscarServicos(),
-        ]);
+        const [listaServicos, listaCategorias, todosServicos] =
+          await Promise.all([
+            buscarServicos(
+              searchParams.get("busca") || undefined,
+              undefined,
+              searchParams.get("regiao") || undefined,
+              searchParams.get("categoria") || undefined
+            ),
+            buscarCategoriasServico(),
+            buscarServicos(),
+          ]);
 
         setServicos(listaServicos);
         setCategorias(listaCategorias);
-        setMunicipios(listaMunicipios);
 
         const regioesDisponiveis = Array.from(
           new Set(
@@ -111,7 +105,7 @@ function Servicos() {
 
       const resultados = await buscarServicos(
         busca.trim() || undefined,
-        municipio || undefined,
+        undefined,
         regiao || undefined,
         categoria || undefined
       );
@@ -130,7 +124,6 @@ function Servicos() {
 
   function limparFiltros() {
     setBusca("");
-    setMunicipio("");
     setRegiao("");
     setCategoria("");
 
@@ -193,7 +186,7 @@ function Servicos() {
             </p>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {/* Nome */}
             <div>
               <label
@@ -215,31 +208,6 @@ function Servicos() {
                   className="w-full bg-transparent text-sm text-slate-800 outline-none placeholder:text-slate-400"
                 />
               </div>
-            </div>
-
-            {/* Município */}
-            <div>
-              <label
-                htmlFor="municipio-servico"
-                className="mb-2 block text-sm font-semibold text-slate-700"
-              >
-                Município
-              </label>
-
-              <select
-                id="municipio-servico"
-                value={municipio}
-                onChange={(event) => setMunicipio(event.target.value)}
-                className="h-12 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
-              >
-                <option value="">Todos os municípios</option>
-
-                {municipios.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </select>
             </div>
 
             {/* Região */}
