@@ -1,10 +1,16 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { BookHeart, CalendarDays, Heart, LockKeyhole, Smile, Meh, Frown, Plus, Trash2, X } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
+import { useTheme } from "../context/ThemeContext";
 import { ApiError } from "../services/api";
 import { cadastrarRegistroBemEstar, excluirRegistroBemEstar, listarRegistrosBemEstar, type RegistroBemEstar } from "../services/registroBemEstarService";
 
-type Humor = "Muito bem" | "Bem" | "Neutro" | "Mal" | "Muito mal";
+type Humor =
+  | "Muito bem"
+  | "Bem"
+  | "Neutro"
+  | "Mal"
+  | "Muito mal";
 
 const opcoesHumor: {
   valor: Humor;
@@ -24,6 +30,7 @@ function obterDataAtual(): string {
   const ano = hoje.getFullYear();
   const mes = String(hoje.getMonth() + 1).padStart(2, "0");
   const dia = String(hoje.getDate()).padStart(2, "0");
+
   return `${ano}-${mes}-${dia}`;
 }
 
@@ -37,6 +44,10 @@ function formatarData(data: string): string {
 
 function Diario() {
   const { user, token, isLoading: authLoading } = useAuth();
+  const { theme } = useTheme();
+
+  const temaEscuro = theme === "escuro";
+  const temaIntermediario = theme === "intermediario";
 
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [humor, setHumor] = useState<Humor | "">("");
@@ -48,6 +59,82 @@ function Diario() {
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [excluindoId, setExcluindoId] = useState<number | null>(null);
+
+  const cores = {
+    pagina: temaEscuro
+      ? "bg-slate-950"
+      : temaIntermediario
+        ? "bg-slate-300"
+        : "bg-slate-50",
+
+    superficie: temaEscuro
+      ? "border-slate-700 bg-slate-900"
+      : temaIntermediario
+        ? "border-slate-400 bg-slate-200"
+        : "border-slate-200 bg-white",
+
+    superficieSecundaria: temaEscuro
+      ? "border-slate-700 bg-slate-800"
+      : temaIntermediario
+        ? "border-slate-400 bg-slate-300"
+        : "border-slate-100 bg-slate-50",
+
+    formulario: temaEscuro
+      ? "border-violet-800 bg-slate-800"
+      : temaIntermediario
+        ? "border-violet-300 bg-slate-200"
+        : "border-violet-100 bg-violet-50/50",
+
+    titulo: temaEscuro ? "text-white" : "text-slate-900",
+
+    texto: temaEscuro
+      ? "text-slate-300"
+      : temaIntermediario
+        ? "text-slate-700"
+        : "text-slate-600",
+
+    textoSecundario: temaEscuro
+      ? "text-slate-400"
+      : temaIntermediario
+        ? "text-slate-600"
+        : "text-slate-500",
+
+    label: temaEscuro
+      ? "text-slate-200"
+      : temaIntermediario
+        ? "text-slate-800"
+        : "text-slate-800",
+
+    campo: temaEscuro
+      ? "border-slate-600 bg-slate-900 text-slate-100 placeholder:text-slate-400"
+      : temaIntermediario
+        ? "border-slate-400 bg-slate-100 text-slate-900 placeholder:text-slate-500"
+        : "border-slate-200 bg-white text-slate-700 placeholder:text-slate-400",
+
+    botaoSecundario: temaEscuro
+      ? "border-slate-600 bg-slate-800 text-slate-200 hover:bg-slate-700"
+      : temaIntermediario
+        ? "border-slate-400 bg-slate-200 text-slate-800 hover:bg-slate-300"
+        : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
+
+    iconeSecundario: temaEscuro
+      ? "bg-violet-950 text-violet-300"
+      : temaIntermediario
+        ? "bg-violet-200 text-violet-800"
+        : "bg-violet-50 text-violet-700",
+
+    lembrete: temaEscuro
+      ? "border-violet-800 bg-violet-950"
+      : temaIntermediario
+        ? "border-violet-300 bg-violet-100"
+        : "border-violet-100 bg-violet-50",
+
+    textoLembrete: temaEscuro
+      ? "text-violet-200"
+      : temaIntermediario
+        ? "text-violet-950"
+        : "text-violet-800",
+  };
 
   const carregarRegistros = useCallback(
     async (mostrarCarregamento = true) => {
@@ -97,6 +184,7 @@ function Diario() {
         if (!ativo) return;
 
         setErro("");
+
         setRegistros(
           [...dados].sort((a, b) =>
             b.dataRegistro.localeCompare(a.dataRegistro)
@@ -106,6 +194,7 @@ function Diario() {
         if (!ativo) return;
 
         console.error("Erro ao carregar diário:", error);
+
         setErro(
           error instanceof Error
             ? error.message
@@ -252,8 +341,8 @@ function Diario() {
 
   if (authLoading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-        <p className="text-sm text-slate-500">
+      <main className={`flex min-h-screen items-center justify-center px-4 ${cores.pagina}`}>
+        <p className={`text-sm ${cores.textoSecundario}`}>
           Verificando autenticação...
         </p>
       </main>
@@ -262,18 +351,18 @@ function Diario() {
 
   if (!user || !token) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-        <div className="max-w-md rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+      <main className={`flex min-h-screen items-center justify-center px-4 ${cores.pagina}`}>
+        <div className={`max-w-md rounded-2xl border p-8 text-center shadow-sm ${cores.superficie}`}>
           <LockKeyhole
             size={42}
             className="mx-auto text-violet-600"
           />
 
-          <h1 className="mt-5 text-2xl font-bold text-slate-900">
+          <h1 className={`mt-5 text-2xl font-bold ${cores.titulo}`}>
             Acesso restrito
           </h1>
 
-          <p className="mt-2 text-sm text-slate-600">
+          <p className={`mt-2 text-sm ${cores.texto}`}>
             Entre na sua conta para acessar seu diário de bem-estar.
           </p>
         </div>
@@ -282,7 +371,8 @@ function Diario() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className={`min-h-screen transition-colors duration-300 ${cores.pagina}`}>
+      {/* Cabeçalho */}
       <section className="bg-gradient-to-br from-violet-700 via-violet-600 to-purple-500 px-4 py-12 text-white sm:px-6 sm:py-20">
         <div className="mx-auto max-w-7xl">
           <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium">
@@ -303,50 +393,58 @@ function Diario() {
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+        {/* Cartões informativos */}
         <div className="mb-10 grid gap-6 md:grid-cols-2">
-          <div className="rounded-2xl border border-violet-100 bg-white p-6 shadow-sm">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-50 text-violet-700">
+          <div className={`rounded-2xl border p-6 shadow-sm ${cores.superficie}`}>
+            <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${cores.iconeSecundario}`}>
               <Heart size={24} />
             </div>
 
-            <h2 className="mt-5 text-lg font-bold text-slate-900">
+            <h2 className={`mt-5 text-lg font-bold ${cores.titulo}`}>
               Acompanhe seu bem-estar
             </h2>
 
-            <p className="mt-2 text-sm leading-7 text-slate-600">
+            <p className={`mt-2 text-sm leading-7 ${cores.texto}`}>
               Registre como você está se sentindo e observe
               suas emoções ao longo do tempo.
             </p>
           </div>
 
-          <div className="rounded-2xl border border-teal-100 bg-white p-6 shadow-sm">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-50 text-teal-700">
+          <div className={`rounded-2xl border p-6 shadow-sm ${cores.superficie}`}>
+            <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${
+              temaEscuro
+                ? "bg-teal-950 text-teal-300"
+                : temaIntermediario
+                  ? "bg-teal-100 text-teal-900"
+                  : "bg-teal-50 text-teal-700"
+            }`}>
               <LockKeyhole size={24} />
             </div>
 
-            <h2 className="mt-5 text-lg font-bold text-slate-900">
+            <h2 className={`mt-5 text-lg font-bold ${cores.titulo}`}>
               Um espaço pessoal
             </h2>
 
-            <p className="mt-2 text-sm leading-7 text-slate-600">
+            <p className={`mt-2 text-sm leading-7 ${cores.texto}`}>
               Seus registros são pessoais e destinados ao
               acompanhamento da sua própria jornada.
             </p>
           </div>
         </div>
 
-        <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-8">
+        {/* Histórico */}
+        <div className={`min-w-0 rounded-2xl border p-4 shadow-sm sm:p-8 ${cores.superficie}`}>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="flex items-center gap-2">
-                <CalendarDays size={21} className="text-violet-600" />
+                <CalendarDays size={21} className="text-violet-500" />
 
-                <h2 className="text-xl font-bold text-slate-900">
+                <h2 className={`text-xl font-bold ${cores.titulo}`}>
                   Histórico de registros
                 </h2>
               </div>
 
-              <p className="mt-2 text-sm text-slate-500">
+              <p className={`mt-2 text-sm ${cores.textoSecundario}`}>
                 Acompanhe os registros realizados no seu diário.
               </p>
             </div>
@@ -364,18 +462,19 @@ function Diario() {
             </button>
           </div>
 
+          {/* Formulário */}
           {mostrarFormulario && (
             <form
               onSubmit={registrarBemEstar}
-              className="mt-8 rounded-2xl border border-violet-100 bg-violet-50/50 p-5 sm:p-7"
+              className={`mt-8 rounded-2xl border p-5 transition-colors duration-300 sm:p-7 ${cores.formulario}`}
             >
               <div className="mb-6 flex items-center justify-between gap-3">
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900">
+                  <h3 className={`text-lg font-bold ${cores.titulo}`}>
                     Novo registro
                   </h3>
 
-                  <p className="mt-1 text-sm text-slate-500">
+                  <p className={`mt-1 text-sm ${cores.textoSecundario}`}>
                     Reserve um momento para refletir sobre seu dia.
                   </p>
                 </div>
@@ -386,21 +485,38 @@ function Diario() {
                     setMostrarFormulario(false);
                     limparFormulario();
                   }}
-                  className="rounded-lg p-2 text-slate-500 transition hover:bg-white hover:text-slate-800"
+                  className={`rounded-lg p-2 transition ${cores.textoSecundario} ${
+                    temaEscuro
+                      ? "hover:bg-slate-700 hover:text-white"
+                      : "hover:bg-white hover:text-slate-800"
+                  }`}
                   aria-label="Fechar formulário"
                 >
                   <X size={20} />
                 </button>
               </div>
 
+              {/* Humor */}
               <div>
-                <label className="mb-3 block text-sm font-semibold text-slate-800">
+                <label className={`mb-3 block text-sm font-semibold ${cores.label}`}>
                   Como você está se sentindo?
                 </label>
 
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
                   {opcoesHumor.map((opcao) => {
                     const selecionado = humor === opcao.valor;
+
+                    const classeHumor = selecionado
+                      ? temaEscuro
+                        ? "border-violet-500 bg-violet-950 text-violet-200 ring-2 ring-violet-500/30"
+                        : temaIntermediario
+                          ? "border-violet-600 bg-violet-200 text-violet-950 ring-2 ring-violet-500/20"
+                          : "border-violet-500 bg-violet-100 text-violet-800 ring-2 ring-violet-100"
+                      : temaEscuro
+                        ? "border-slate-600 bg-slate-900 text-slate-200 hover:border-violet-500 hover:bg-slate-800"
+                        : temaIntermediario
+                          ? "border-slate-400 bg-slate-100 text-slate-800 hover:border-violet-400 hover:bg-violet-50"
+                          : "border-slate-200 bg-white text-slate-600 hover:border-violet-300";
 
                     return (
                       <button
@@ -411,13 +527,11 @@ function Diario() {
                           setErro("");
                         }}
                         aria-pressed={selecionado}
-                        className={`flex flex-col items-center gap-2 rounded-xl border p-4 transition ${
-                          selecionado
-                            ? "border-violet-500 bg-violet-100 text-violet-800"
-                            : "border-slate-200 bg-white text-slate-600 hover:border-violet-300"
-                        }`}
+                        className={`flex flex-col items-center gap-2 rounded-xl border p-4 transition ${classeHumor}`}
                       >
-                        <span className="text-3xl">{opcao.emoji}</span>
+                        <span className="text-3xl">
+                          {opcao.emoji}
+                        </span>
 
                         <span className="text-xs font-semibold">
                           {opcao.valor}
@@ -428,10 +542,11 @@ function Diario() {
                 </div>
               </div>
 
+              {/* Data */}
               <div className="mt-6">
                 <label
                   htmlFor="dataRegistro"
-                  className="mb-2 block text-sm font-semibold text-slate-800"
+                  className={`mb-2 block text-sm font-semibold ${cores.label}`}
                 >
                   Data do registro
                 </label>
@@ -443,14 +558,15 @@ function Diario() {
                   max={obterDataAtual()}
                   onChange={(event) => setData(event.target.value)}
                   required
-                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100 sm:max-w-xs"
+                  className={`w-full rounded-xl border px-4 py-3 text-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 sm:max-w-xs ${cores.campo}`}
                 />
               </div>
 
+              {/* Descrição */}
               <div className="mt-6">
                 <label
                   htmlFor="descricaoRegistro"
-                  className="mb-2 block text-sm font-semibold text-slate-800"
+                  className={`mb-2 block text-sm font-semibold ${cores.label}`}
                 >
                   Como foi seu dia?
                 </label>
@@ -466,23 +582,31 @@ function Diario() {
                   rows={5}
                   maxLength={1000}
                   required
-                  className="w-full resize-y rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+                  className={`w-full resize-y rounded-xl border px-4 py-3 text-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 ${cores.campo}`}
                 />
 
-                <p className="mt-2 text-right text-xs text-slate-400">
+                <p className={`mt-2 text-right text-xs ${cores.textoSecundario}`}>
                   {descricao.length}/1000 caracteres
                 </p>
               </div>
 
+              {/* Erro */}
               {erro && (
                 <p
                   role="alert"
-                  className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700"
+                  className={`mt-4 rounded-lg border px-4 py-3 text-sm ${
+                    temaEscuro
+                      ? "border-red-900 bg-red-950 text-red-200"
+                      : temaIntermediario
+                        ? "border-red-300 bg-red-100 text-red-900"
+                        : "border-red-200 bg-red-50 text-red-700"
+                  }`}
                 >
                   {erro}
                 </p>
               )}
 
+              {/* Ações */}
               <div className="mt-6 flex flex-col justify-end gap-3 sm:flex-row">
                 <button
                   type="button"
@@ -491,7 +615,7 @@ function Diario() {
                     setMostrarFormulario(false);
                     limparFormulario();
                   }}
-                  className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  className={`rounded-xl border px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${cores.botaoSecundario}`}
                 >
                   Cancelar
                 </button>
@@ -508,10 +632,17 @@ function Diario() {
             </form>
           )}
 
+          {/* Erro fora do formulário */}
           {erro && !mostrarFormulario && (
             <div
               role="alert"
-              className="mt-6 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700"
+              className={`mt-6 rounded-lg border px-4 py-3 text-sm ${
+                temaEscuro
+                  ? "border-red-900 bg-red-950 text-red-200"
+                  : temaIntermediario
+                    ? "border-red-300 bg-red-100 text-red-900"
+                    : "border-red-200 bg-red-50 text-red-700"
+              }`}
             >
               {erro}
 
@@ -525,13 +656,15 @@ function Diario() {
             </div>
           )}
 
+          {/* Carregamento */}
           {carregando ? (
-            <div className="mt-8 rounded-2xl bg-slate-50 px-5 py-16 text-center">
-              <p className="text-sm text-slate-500">
+            <div className={`mt-8 rounded-2xl px-5 py-16 text-center ${cores.superficieSecundaria}`}>
+              <p className={`text-sm ${cores.textoSecundario}`}>
                 Carregando seus registros...
               </p>
             </div>
           ) : registros.length > 0 ? (
+            /* Histórico de registros */
             <div className="mt-8 space-y-4">
               {registros.map((registro) => {
                 const opcao = obterOpcaoHumor(registro.humor);
@@ -539,20 +672,20 @@ function Diario() {
                 return (
                   <article
                     key={registro.idRegistro}
-                    className="rounded-2xl border border-slate-200 bg-white p-5 transition hover:border-violet-200"
+                    className={`rounded-2xl border p-5 transition hover:border-violet-400 ${cores.superficie}`}
                   >
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                       <div className="flex items-start gap-4">
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-2xl">
+                        <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-2xl ${cores.iconeSecundario}`}>
                           {opcao?.emoji ?? "📝"}
                         </div>
 
                         <div>
-                          <h3 className="font-bold text-slate-900">
+                          <h3 className={`font-bold ${cores.titulo}`}>
                             {registro.humor}
                           </h3>
 
-                          <p className="mt-1 text-xs text-slate-500">
+                          <p className={`mt-1 text-xs ${cores.textoSecundario}`}>
                             {formatarData(registro.dataRegistro)}
                           </p>
                         </div>
@@ -572,7 +705,7 @@ function Diario() {
                     </div>
 
                     {registro.observacoes && (
-                      <p className="mt-4 whitespace-pre-wrap text-sm leading-7 text-slate-600">
+                      <p className={`mt-4 whitespace-pre-wrap text-sm leading-7 ${cores.texto}`}>
                         {registro.observacoes}
                       </p>
                     )}
@@ -581,16 +714,17 @@ function Diario() {
               })}
             </div>
           ) : (
-            <div className="mt-8 flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-16 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-100 text-violet-600">
+            /* Estado vazio */
+            <div className={`mt-8 flex flex-col items-center justify-center rounded-2xl border border-dashed px-5 py-16 text-center ${cores.superficieSecundaria}`}>
+              <div className={`flex h-16 w-16 items-center justify-center rounded-2xl ${cores.iconeSecundario}`}>
                 <BookHeart size={32} />
               </div>
 
-              <h3 className="mt-5 text-lg font-bold text-slate-900">
+              <h3 className={`mt-5 text-lg font-bold ${cores.titulo}`}>
                 Seu diário está começando!
               </h3>
 
-              <p className="mt-2 max-w-md text-sm leading-7 text-slate-500">
+              <p className={`mt-2 max-w-md text-sm leading-7 ${cores.textoSecundario}`}>
                 Você ainda não possui registros. Clique em
                 "Novo registro" para começar a acompanhar
                 seu bem-estar.
@@ -599,12 +733,13 @@ function Diario() {
           )}
         </div>
 
-        <div className="mt-8 rounded-2xl border border-violet-100 bg-violet-50 p-6">
-          <h3 className="font-bold text-violet-900">
+        {/* Lembrete */}
+        <div className={`mt-8 rounded-2xl border p-6 ${cores.lembrete}`}>
+          <h3 className={`font-bold ${temaEscuro ? "text-violet-200" : "text-violet-900"}`}>
             Um lembrete importante
           </h3>
 
-          <p className="mt-2 text-sm leading-7 text-violet-800">
+          <p className={`mt-2 text-sm leading-7 ${cores.textoLembrete}`}>
             Não existe uma maneira certa de se sentir. Reserve
             um momento para reconhecer suas emoções sem julgamentos.
             O diário é uma ferramenta de reflexão e não substitui
