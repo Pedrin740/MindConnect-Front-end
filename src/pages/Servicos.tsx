@@ -45,9 +45,7 @@ function Servicos() {
 
   const [busca, setBusca] = useState(searchParams.get("busca") || "");
   const [regiao, setRegiao] = useState(searchParams.get("regiao") || "");
-  const [categoria, setCategoria] = useState(
-    searchParams.get("categoria") || ""
-  );
+  const [categoria, setCategoria] = useState(searchParams.get("categoria") || "");
 
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
@@ -58,17 +56,20 @@ function Servicos() {
         setCarregando(true);
         setErro("");
 
-        const [listaServicos, listaCategorias, todosServicos] =
-          await Promise.all([
-            buscarServicos(
-              searchParams.get("busca") || undefined,
-              undefined,
-              searchParams.get("regiao") || undefined,
-              searchParams.get("categoria") || undefined
-            ),
-            buscarCategoriasServico(),
-            buscarServicos(),
-          ]);
+        const [
+          listaServicos,
+          listaCategorias,
+          todosServicos,
+        ] = await Promise.all([
+          buscarServicos(
+            searchParams.get("busca") || undefined,
+            undefined,
+            searchParams.get("regiao") || undefined,
+            searchParams.get("categoria") || undefined
+          ),
+          buscarCategoriasServico(),
+          buscarServicos(),
+        ]);
 
         setServicos(listaServicos);
         setCategorias(listaCategorias);
@@ -343,13 +344,14 @@ function Servicos() {
 
         {/* Lista de serviços */}
         {!carregando && !erro && servicos.length > 0 && (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid items-stretch gap-6 md:grid-cols-2 lg:grid-cols-3">
             {servicos.map((servico) => (
               <article
                 key={servico.idServico}
-                className="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-violet-200 hover:shadow-lg hover:shadow-violet-100/60"
+                className="group flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-violet-200 hover:shadow-lg hover:shadow-violet-100/60"
               >
-                <div className="mb-5 flex items-start justify-between gap-3">
+                {/* Ícone e categoria */}
+                <div className="mb-5 flex shrink-0 items-start justify-between gap-3">
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-700 transition-colors group-hover:bg-violet-100">
                     <HeartHandshake size={25} />
                   </div>
@@ -359,23 +361,26 @@ function Servicos() {
                   </span>
                 </div>
 
-                <h3 className="text-lg font-bold leading-snug text-slate-900">
+                {/* Nome do serviço */}
+                <h3 className="min-h-[3.5rem] shrink-0 text-lg font-bold leading-snug text-slate-900">
                   {servico.nome}
                 </h3>
 
-                <p className="mt-3 min-h-12 text-sm leading-6 text-slate-600">
+                {/* Descrição */}
+                <p className="mt-3 min-h-[7.5rem] flex-1 text-sm leading-6 text-slate-600">
                   {servico.descricaoServicos ||
                     "Informações sobre o atendimento não disponíveis."}
                 </p>
 
-                <div className="mt-6 space-y-3 border-t border-slate-100 pt-5">
-                  <div className="flex items-start gap-3 text-sm text-slate-600">
+                {/* Informações do serviço */}
+                <div className="mt-6 shrink-0 space-y-4 border-t border-slate-100 pt-5">
+                  <div className="flex items-start gap-3 text-sm leading-6 text-slate-600">
                     <MapPin
                       size={18}
                       className="mt-0.5 shrink-0 text-violet-600"
                     />
 
-                    <span>
+                    <span className="min-w-0 break-words">
                       {servico.endereco}
                       {servico.bairro && `, ${servico.bairro}`}
                       {servico.municipio && ` — ${servico.municipio}`}
@@ -384,7 +389,7 @@ function Servicos() {
                   </div>
 
                   {servico.telefone && (
-                    <div className="flex items-center gap-3 text-sm text-slate-600">
+                    <div className="flex items-center gap-3 text-sm leading-6 text-slate-600">
                       <Phone
                         size={17}
                         className="shrink-0 text-violet-600"
@@ -395,21 +400,23 @@ function Servicos() {
                   )}
 
                   {servico.horarioFuncionamento && (
-                    <div className="flex items-start gap-3 text-sm text-slate-600">
+                    <div className="flex items-start gap-3 text-sm leading-6 text-slate-600">
                       <Clock
                         size={17}
                         className="mt-0.5 shrink-0 text-violet-600"
                       />
 
-                      <span>{servico.horarioFuncionamento}</span>
+                      <span className="min-w-0 break-words">
+                        {servico.horarioFuncionamento}
+                      </span>
                     </div>
                   )}
                 </div>
 
-                {/* Acesso à página de detalhes */}
+                {/* Botão de detalhes */}
                 <Link
                   to={`/servicos/${servico.idServico}`}
-                  className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-violet-700 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-violet-800"
+                  className="mt-5 flex min-h-12 w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-violet-700 px-4 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-violet-800"
                 >
                   Ver detalhes do serviço
                 </Link>
